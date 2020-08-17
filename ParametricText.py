@@ -58,6 +58,7 @@ events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
 manifest_ = thomasa88lib.manifest.read()
 
 selection_map_ = defaultdict(list)
+last_selected_row_ = None
 
 ### design.attributes to save
 ### select to point out. a text prompt to ask for parameter name
@@ -130,14 +131,18 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     
     table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '')
     table_input.isFullWidth = True
-    table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False, '', True)
-    table_remove = table_input.commandInputs.addBoolValueInput('remove_row', '-', False, '', True)
+    table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False,
+                                                            thomasa88lib.utils.get_fusion_deploy_folder() +
+                                                            '/Fusion/UI/FusionUI/Resources/Image/Add', True)
+    table_remove = table_input.commandInputs.addBoolValueInput('remove_row', '-', False,
+                                                               thomasa88lib.utils.get_fusion_deploy_folder() +
+                                                               '/Fusion/UI/FusionUI/Resources/Image/Remove', True)
     table_input.addToolbarCommandInput(table_add)
     table_input.addToolbarCommandInput(table_remove)
     
     select_input = cmd.commandInputs.addSelectionInput('select', 'Sketch Texts', '')
     select_input.addSelectionFilter(adsk.core.SelectionCommandInput.Texts)
-    select_input.setSelectionLimits(1, 0)
+    select_input.setSelectionLimits(0, 0)
 
     load(cmd)
 
@@ -150,6 +155,9 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
     global selection_map_
     design: adsk.fusion.Design = app_.activeProduct
     table_input: adsk.core.TableCommandInput = args.inputs.itemById('table')
+    select_input = args.inputs.itemById('select')
+    update_select = False
+    text_id = get_text_id(args.input)
     if args.input.id == 'add_row':
         add_row(table_input, get_next_id())
     elif args.input.id == 'remove_row':
@@ -157,26 +165,34 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
     elif args.input.id == 'select':
         row = table_input.selectedRow
         if row != -1:
-            select_input = args.inputs.itemById('select')
             text_id = get_text_id(table_input.getInputAtPosition(row, 0))
             selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
             
             selections = selection_map_[text_id]
             selections.clear()
             for i in range(select_input.selectionCount):
-                sketch_text = select_input.selection(i).entity
-                sketch = sketch_text.parentSketch
-                selections.append(sketch_text)
+                text_proxy = select_input.selection(i).entity
+                sketch = text_proxy.parentSketch
+                selections.append(text_proxy)
             selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
             set_selected_text(selected_input, selections)
     elif args.input.id.startswith('parameter_'):
+        update_select = True
         parameter_input: adsk.core.DropDownCommandInput = args.input
-        text_id = get_text_id(parameter_input)
         custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
         # Using isReadOnly instead of isEnabled, to allow the user to still select the row
         custom_input.isReadOnly = (parameter_input.selectedItem.index != 0)
     elif args.input.id.startswith('custom_'):
-        print("custom")
+        update_select = True
+    elif args.input.id.startswith('selected_'):
+        update_select = True
+    
+    global last_selected_row_
+    if update_select and table_input.selectedRow != last_selected_row_:
+        select_input.clearSelection()
+        for text_proxy in selection_map_[text_id]:
+            select_input.addSelection(text_proxy)
+        last_selected_row_ = table_input.selectedRow
 
 def set_selected_text(selected_input, selections):
     if selections:
@@ -191,6 +207,7 @@ def get_text_id(input_or_str):
 
 def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None):
     global selection_map_
+    global last_selected_row_
     design: adsk.fusion.Design = app_.activeProduct
 
     selections = selection_map_[text_id]
@@ -224,6 +241,7 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
         param_item = parameter_input.listItems.add(param.name, False, thomasa88lib.utils.get_fusion_deploy_folder() +
             '/Fusion/UI/FusionUI/Resources/Parameters/ParametersCommand')
         param_item.isSelected = True
+        last_selected_row_ = row_index
     
     if text_type == 'custom':
         custom_input_text = custom_text
@@ -241,6 +259,7 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
         select_input.clearSelection()
 
 def get_next_id():
+    design: adsk.fusion.Design = app_.activeProduct
     next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
     if not next_id_attr:
         next_id_attr = design.attributes.add('thomasa88_ParametricText', 'nextId', str(0))
