@@ -1,0 +1,13 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"addin",
+	"id":	"c8c16827-6eff-4703-a809-351ce20606df",
+	"author":	"Thomas Axelsson",
+	"description":	{
+		"":	"Allows using parameters for texts."
+	},
+	"version":	"0.1.0",
+	"runOnStartup":	false,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}
