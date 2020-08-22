@@ -1,8 +1,8 @@
 #Author-Thomas Axelsson
 #Description-Allows using parameters for texts.
 
-# This file is part of DirectName, a Fusion 360 add-in for naming
-# features directly after creation.
+# This file is part of Parametric Text, a Fusion 360 add-in for creating text
+# parameters.
 #
 # Copyright (c) 2020 Thomas Axelsson
 # 
@@ -94,8 +94,10 @@ def run(context):
 
         # Use a Command to get a transaction when renaming
         map_cmd_def = ui_.commandDefinitions.addButtonDefinition(MAP_CMD_ID,
-                                                                  f'Change Text Parameters',
-                                                                  f'{NAME} (v {manifest_["version"]})',
+                                                                 f'Change Text Parameters',            
+                                                                 'Displays the Text Parameters dialog box.\n\n'
+                                                                 'Assign and edit sketch text parameters.\n\n'
+                                                                  f'({NAME} v {manifest_["version"]})',
                                                                   './resources/text_parameter')
         events_manager_.add_handler(map_cmd_def.commandCreated,
                                     callback=map_cmd_created_handler)
