@@ -143,7 +143,8 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     events_manager_.add_handler(cmd.inputChanged,
                                 callback=map_cmd_input_changed_handler)
 
-    #param_input = cmd.commandInputs.addDropDownCommandInput('param', 'User parameter', adsk.core.DropDownStyles.TextListDropDownStyle)
+    about = cmd.commandInputs.addTextBoxCommandInput('about', '', f'{NAME} v{manifest_["version"]}', 1, True)
+    about.isFullWidth = True
     
     table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '')
     table_input.isFullWidth = True
