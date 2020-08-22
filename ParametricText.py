@@ -335,17 +335,11 @@ def save(cmd):
         parameter_input = table_input.commandInputs.itemById(f'parameter_{text_id}')
         selected_parameter = parameter_input.selectedItem
         if selected_parameter.index == 0:
-            text = table_input.commandInputs.itemById(f'custom_{text_id}').value
             parameter_name = None
+            text = table_input.commandInputs.itemById(f'custom_{text_id}').value
         else:
             parameter_name = selected_parameter.name
-            parameter = design.userParameters.itemByName(parameter_name)
-            if parameter:
-                text = parameter.comment
-            else:
-                text = '???'
-        if text is None:
-            text = ''
+            text = get_parameter_comment(parameter_name)
 
         remove_attributes(text_id)
 
@@ -381,8 +375,11 @@ def remove_attributes(text_id):
     if custom_value:
         custom_value.deleteMe()
 
-def evaluate_text(text):
-    shown_text = text.replace('<version>', str(app_.activeDocument.dataFile.latestVersionNumber + 1))
+def evaluate_text(text, next_version=False):
+    version = app_.activeDocument.dataFile.latestVersionNumber
+    if next_version:
+        version += 1
+    shown_text = text.replace('<version>', str(version))
     return shown_text
 
 def load(cmd):
@@ -443,21 +440,35 @@ def get_texts():
     return texts
 
 def document_saving_handler(args: adsk.core.DocumentEventArgs):
-    print(f"{NAME} todo: Update version numbers before save")
+    texts = get_texts()
+    for text_id, text_info in texts.items():
+        text = ''
+        if text_info.text_type == 'parameter':
+            text = get_parameter_comment(text_info.text_value)
+        else:
+            text = text_info.text_value
+        
+        if '<version>' in text:
+            for sketch_text in text_info.sketch_texts:
+                sketch_text.text = evaluate_text(text, next_version=True)
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     if args.commandId == 'ChangeParameterCommand': # args.commandTerminationReason
-        design: adsk.fusion.Design = app_.activeProduct
         # User (might have) changed a parameter
         texts = get_texts()
         for text_id, text_info in texts.items():
             if text_info.text_type == 'parameter':
-                parameter = design.userParameters.itemByName(text_info.text_value)
-                if parameter:
-                    text = parameter.comment
-                else:
-                    text = '???'
+                text = get_parameter_comment(text_info.text_value)
                 
                 if text_info.sketch_texts and text_info.sketch_texts[0].text != text:
                     for sketch_text in text_info.sketch_texts:
                         sketch_text.text = evaluate_text(text)
+
+def get_parameter_comment(parameter_name):
+    design: adsk.fusion.Design = app_.activeProduct
+    parameter = design.userParameters.itemByName(parameter_name)
+    if parameter:
+        text = parameter.comment
+    else:
+        text = '???'
+    return text
