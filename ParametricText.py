@@ -210,10 +210,16 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
                 set_selected_text(selected_input, selections)
 
     if need_update_select:
+        # Wait for the table selection to update before updating select input
         events_manager_.delay(lambda: update_select_input(table_input))
 
 def update_select_input(table_input, force=False):
     global last_selected_row_
+
+    if not table_input.isValid:
+        # Dialog is likely closed. This is an effect of the delay() call.
+        return
+    
     row = table_input.selectedRow
     if row != last_selected_row_ or force:
         global addin_updating_select_
@@ -460,6 +466,10 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
                 if text_info.sketch_texts and text_info.sketch_texts[0].text != text:
                     for sketch_text in text_info.sketch_texts:
                         sketch_text.text = evaluate_text(text)
+    ### TODO: Update when user selects "Compute All"
+    #elif args.commandId == 'FusionComputeAllCommand':
+    #    load()
+    #    save()
 
 def get_parameter_comment(parameter_name):
     design: adsk.fusion.Design = app_.activeProduct
