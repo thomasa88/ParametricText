@@ -1,4 +1,4 @@
-# ParametricText
+# ![](resources/logo/32x32.png) ParametricText
 
 ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text Parameters* in sketches - as far as it can be done.
 
