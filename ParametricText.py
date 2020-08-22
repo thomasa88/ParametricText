@@ -45,8 +45,15 @@ importlib.reload(thomasa88lib.events)
 importlib.reload(thomasa88lib.manifest)
 importlib.reload(thomasa88lib.error)
 
-PANEL_ID = 'thomasa88_ParametricText_Panel'
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
+PANEL_IDS = [
+            'SketchModifyPanel',
+            'SolidModifyPanel',
+            'SheetMetalModifyPanel',
+            'AssembleUtilityPanel',
+            'SurfaceModifyPanel',
+            'SnapshotSolidModifyPanel'
+        ]
 
 SELECTED_COLUMN = 0
 
@@ -83,21 +90,21 @@ def run(context):
 
         # Use a Command to get a transaction when renaming
         map_cmd_def = ui_.commandDefinitions.addButtonDefinition(MAP_CMD_ID,
-                                                                  f'Modify Text Parameters',
+                                                                  f'Change Text Parameters',
                                                                   f'{NAME} (v {manifest_["version"]})',
                                                                   '')
         events_manager_.add_handler(map_cmd_def.commandCreated,
                                     callback=map_cmd_created_handler)
 
-        tab = ui_.allToolbarTabs.itemById('ToolsTab')
-#### set panel to only be visible in design? OK by default?
-        panel = tab.toolbarPanels.itemById(PANEL_ID)
-        if panel:
-            panel.deleteMe()
-        panel = tab.toolbarPanels.add(PANEL_ID, f'{NAME}')
+        for panel_id in PANEL_IDS:
+            panel = ui_.allToolbarPanels.itemById(panel_id)
+            old_control = panel.controls.itemById(MAP_CMD_ID)
+            if old_control:
+                old_control.deleteMe()
+            panel.controls.addCommand(map_cmd_def, 'ChangeParameterCommand', False)
 
-        map_control = panel.controls.addCommand(map_cmd_def)
-        map_control.isPromotedByDefault = True
+        #map_control = panel.controls.addCommand(map_cmd_def)
+        #map_control.isPromotedByDefault = True
         #map_control.isPromoted = True
 
         events_manager_.add_handler(app_.documentSaving, callback=document_saving_handler)
@@ -107,14 +114,15 @@ def stop(context):
     with error_catcher_:
         events_manager_.clean_up()
 
-        map_cmd_def = ui_.commandDefinitions.itemById(MAP_CMD_ID)
+        for panel_id in PANEL_IDS:
+            panel = ui_.allToolbarPanels.itemById(panel_id)
+            control = panel.controls.itemById(MAP_CMD_ID)
+            if control:
+                control.deleteMe()
+        
+        map_cmd_def = panel.controls.itemById(MAP_CMD_ID)
         if map_cmd_def:
             map_cmd_def.deleteMe()
-
-        tab = ui_.allToolbarTabs.itemById('ToolsTab')
-        panel = tab.toolbarPanels.itemById(PANEL_ID)
-        if panel:
-            panel.deleteMe()
 
 def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     global command_
@@ -123,6 +131,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     design: adsk.fusion.Design = app_.activeProduct
 
     cmd.setDialogMinimumSize(450, 200)
+    cmd.setDialogInitialSize(450, 200)
 
     events_manager_.add_handler(cmd.execute,
                                 callback=map_cmd_execute_handler)
