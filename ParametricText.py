@@ -148,12 +148,8 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     
     table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '')
     table_input.isFullWidth = True
-    table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False,
-                                                            thomasa88lib.utils.get_fusion_deploy_folder() +
-                                                            '/Fusion/UI/FusionUI/Resources/Image/Add', True)
-    table_remove = table_input.commandInputs.addBoolValueInput('remove_row', '-', False,
-                                                               thomasa88lib.utils.get_fusion_deploy_folder() +
-                                                               '/Fusion/UI/FusionUI/Resources/Image/Remove', True)
+    table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False, './resources/add', True)
+    table_remove = table_input.commandInputs.addBoolValueInput('remove_row', '-', False, './resources/remove', True)
     table_input.addToolbarCommandInput(table_add)
     table_input.addToolbarCommandInput(table_remove)
     
@@ -269,16 +265,14 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
     parameter_input.listItems.addSeparator(-1)
 
     for param in design.userParameters:
-        param_item = parameter_input.listItems.add(param.name, False, thomasa88lib.utils.get_fusion_deploy_folder() +
-                '/Fusion/UI/FusionUI/Resources/Parameters/ParametersCommand')
+        param_item = parameter_input.listItems.add(param.name, False, './resources/user_parameter')
         if text_type == 'parameter' and param.name == custom_text:
             param_item.isSelected = True
     
     if not new_row and not parameter_input.selectedItem and custom_text is not None:
         # Parameter has disappeared.. Roll with it..
         # Cross icon?
-        param_item = parameter_input.listItems.add(param.name, False, thomasa88lib.utils.get_fusion_deploy_folder() +
-            '/Fusion/UI/FusionUI/Resources/Parameters/ParametersCommand')
+        param_item = parameter_input.listItems.add(param.name, False, './resources/user_parameter')
         param_item.isSelected = True
         last_selected_row_ = row_index
     
