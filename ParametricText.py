@@ -59,6 +59,7 @@ manifest_ = thomasa88lib.manifest.read()
 
 selection_map_ = defaultdict(list)
 last_selected_row_ = None
+addin_updating_select_ = False
 removed_texts_ = []
 
 ### design.attributes to save
@@ -104,7 +105,6 @@ def run(context):
 
         events_manager_.add_handler(app_.documentSaving, callback=document_saving_handler)
 
-
 def stop(context):
     with error_catcher_:
         events_manager_.clean_up()
@@ -119,7 +119,9 @@ def stop(context):
             panel.deleteMe()
 
 def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+    global command_
     cmd = args.command
+    command_ = cmd
     design: adsk.fusion.Design = app_.activeProduct
 
     cmd.setDialogMinimumSize(450, 200)
@@ -161,7 +163,7 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
     design: adsk.fusion.Design = app_.activeProduct
     table_input: adsk.core.TableCommandInput = args.inputs.itemById('table')
     select_input = args.inputs.itemById('select')
-    update_select = False
+    need_update_select = False
     text_id = get_text_id(args.input)
     if args.input.id == 'add_row':
         add_row(table_input, get_next_id())
@@ -170,36 +172,53 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         if row != -1:
             remove_row(table_input, row)
     elif args.input.id.startswith('parameter_'):
-        update_select = True
+        need_update_select = True
         parameter_input: adsk.core.DropDownCommandInput = args.input
         custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
         # Using isReadOnly instead of isEnabled, to allow the user to still select the row
         custom_input.isReadOnly = (parameter_input.selectedItem.index != 0)
     elif args.input.id.startswith('custom_'):
-        update_select = True
+        need_update_select = True
     elif args.input.id.startswith('selected_'):
-        update_select = True
+        need_update_select = True
     elif args.input.id == 'select':
+        global addin_updating_select_
         row = table_input.selectedRow
+        if not addin_updating_select_:
+            if row != -1:
+                text_id = get_text_id(table_input.getInputAtPosition(row, 0))
+                selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
+                
+                selections = selection_map_[text_id]
+                selections.clear()
+                for i in range(select_input.selectionCount):
+                    text_proxy = select_input.selection(i).entity
+                    sketch = text_proxy.parentSketch
+                    selections.append(text_proxy)
+                selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
+                set_selected_text(selected_input, selections)
+
+    if need_update_select:
+        events_manager_.delay(lambda: update_select_input(table_input))
+
+def update_select_input(table_input, force=False):
+    global last_selected_row_
+    row = table_input.selectedRow
+    if row != last_selected_row_ or force:
+        global addin_updating_select_
+        # addSelection trigger inputChanged events. They are triggered directly at the function call.
+        addin_updating_select_ = True
+        select_input = command_.commandInputs.itemById('select')
+        select_input.clearSelection()
         if row != -1:
             text_id = get_text_id(table_input.getInputAtPosition(row, 0))
-            selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
-            
-            selections = selection_map_[text_id]
-            selections.clear()
-            for i in range(select_input.selectionCount):
-                text_proxy = select_input.selection(i).entity
-                sketch = text_proxy.parentSketch
-                selections.append(text_proxy)
-            selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
-            set_selected_text(selected_input, selections)
-    
-    global last_selected_row_
-    if update_select and table_input.selectedRow != last_selected_row_:
-        select_input.clearSelection()
-        for text_proxy in selection_map_[text_id]:
-            select_input.addSelection(text_proxy)
-        last_selected_row_ = table_input.selectedRow
+            for text_proxy in selection_map_[text_id]:
+                # "This method is not valid within the commandCreated event but must be used later
+                # in the command lifetime. If you want to pre-populate the selection when the
+                # command is starting, you can use this method in the activate method of the Command."
+                select_input.addSelection(text_proxy)
+        last_selected_row_ = row
+        addin_updating_select_ = False
 
 def set_selected_text(selected_input, selections):
     if selections:
@@ -263,15 +282,18 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
     if new_row:
         table_input.selectedRow = row_index
         select_input = table_input.parentCommand.commandInputs.itemById('select')
+        addin_updating_select_
         select_input.clearSelection()
 
 def remove_row(table_input: adsk.core.TableCommandInput, row_index):
     text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
-
     table_input.deleteRow(row_index)
-
     removed_texts_.append(text_id)
-
+    if table_input.rowCount > row_index:
+        table_input.selectedRow = row_index
+    else:
+        table_input.selectedRow = table_input.rowCount - 1
+    update_select_input(table_input, force=True)
     ### Restore original texts, if cached, if we have live update. Also on unselect.
 
 def get_next_id():
