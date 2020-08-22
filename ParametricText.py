@@ -159,8 +159,12 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     select_input.addSelectionFilter(adsk.core.SelectionCommandInput.Texts)
     select_input.setSelectionLimits(0, 0)
 
+    # Reset dialog state
     global removed_texts_
     removed_texts_.clear()
+    global last_selected_row_
+    last_selected_row_ = None
+
     load(cmd)
 
     if table_input.rowCount == 0:
