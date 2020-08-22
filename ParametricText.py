@@ -351,8 +351,7 @@ def save(cmd):
     
         for sketch_text in selections:
             sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
-            shown_text = text.replace('<version>', str(app_.activeDocument.dataFile.latestVersionNumber + 1))
-            sketch_text.text = shown_text
+            sketch_text.text = evaluate_text(text)
 
     for text_id in removed_texts_:
         remove_attributes(text_id)
@@ -374,6 +373,10 @@ def remove_attributes(text_id):
     custom_value = design.attributes.itemByName('thomasa88_ParametricText', f'customTextValue_{text_id}')
     if custom_value:
         custom_value.deleteMe()
+
+def evaluate_text(text):
+    shown_text = text.replace('<version>', str(app_.activeDocument.dataFile.latestVersionNumber + 1))
+    return shown_text
 
 def load(cmd):
     global selection_map_
@@ -442,4 +445,4 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
                 
                 if text_info.sketch_texts and text_info.sketch_texts[0].text != text:
                     for sketch_text in text_info.sketch_texts:
-                        sketch_text.text = text
+                        sketch_text.text = evaluate_text(text)
