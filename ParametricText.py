@@ -96,7 +96,7 @@ def run(context):
         map_cmd_def = ui_.commandDefinitions.addButtonDefinition(MAP_CMD_ID,
                                                                   f'Change Text Parameters',
                                                                   f'{NAME} (v {manifest_["version"]})',
-                                                                  '')
+                                                                  './resources/text_parameter')
         events_manager_.add_handler(map_cmd_def.commandCreated,
                                     callback=map_cmd_created_handler)
 
