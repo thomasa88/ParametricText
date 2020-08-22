@@ -59,6 +59,7 @@ manifest_ = thomasa88lib.manifest.read()
 
 selection_map_ = defaultdict(list)
 last_selected_row_ = None
+removed_texts_ = []
 
 ### design.attributes to save
 ### select to point out. a text prompt to ask for parameter name
@@ -146,6 +147,8 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     select_input.addSelectionFilter(adsk.core.SelectionCommandInput.Texts)
     select_input.setSelectionLimits(0, 0)
 
+    global removed_texts_
+    removed_texts_.clear()
     load(cmd)
 
     if table_input.rowCount == 0:
@@ -163,7 +166,19 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
     if args.input.id == 'add_row':
         add_row(table_input, get_next_id())
     elif args.input.id == 'remove_row':
-        pass
+        row = table_input.selectedRow
+        if row != -1:
+            remove_row(table_input, row)
+    elif args.input.id.startswith('parameter_'):
+        update_select = True
+        parameter_input: adsk.core.DropDownCommandInput = args.input
+        custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
+        # Using isReadOnly instead of isEnabled, to allow the user to still select the row
+        custom_input.isReadOnly = (parameter_input.selectedItem.index != 0)
+    elif args.input.id.startswith('custom_'):
+        update_select = True
+    elif args.input.id.startswith('selected_'):
+        update_select = True
     elif args.input.id == 'select':
         row = table_input.selectedRow
         if row != -1:
@@ -178,16 +193,6 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
                 selections.append(text_proxy)
             selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
             set_selected_text(selected_input, selections)
-    elif args.input.id.startswith('parameter_'):
-        update_select = True
-        parameter_input: adsk.core.DropDownCommandInput = args.input
-        custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
-        # Using isReadOnly instead of isEnabled, to allow the user to still select the row
-        custom_input.isReadOnly = (parameter_input.selectedItem.index != 0)
-    elif args.input.id.startswith('custom_'):
-        update_select = True
-    elif args.input.id.startswith('selected_'):
-        update_select = True
     
     global last_selected_row_
     if update_select and table_input.selectedRow != last_selected_row_:
@@ -260,6 +265,15 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
         select_input = table_input.parentCommand.commandInputs.itemById('select')
         select_input.clearSelection()
 
+def remove_row(table_input: adsk.core.TableCommandInput, row_index):
+    text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
+
+    table_input.deleteRow(row_index)
+
+    removed_texts_.append(text_id)
+
+    ### Restore original texts, if cached, if we have live update. Also on unselect.
+
 def get_next_id():
     design: adsk.fusion.Design = app_.activeProduct
     next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
@@ -296,13 +310,7 @@ def save(cmd):
         if text is None:
             text = ''
 
-        old_attrs = design.findAttributes('thomasa88_ParametricText', f'hasParametricText_{text_id}')
-        for old_attr in old_attrs:
-            old_attr.deleteMe()
-        
-        custom_text_attr = design.attributes.itemByName('thomasa88_ParametricText', f'customText_{text_id}')
-        if custom_text_attr:
-            custom_text_attr.deleteMe()
+        remove_attributes(text_id)
 
         for sketch_text in selections:
             if parameter_name:
@@ -314,8 +322,22 @@ def save(cmd):
             shown_text = text.replace('<version>', str(app_.activeDocument.dataFile.latestVersionNumber + 1))
             sketch_text.text = shown_text
 
+    for text_id in removed_texts_:
+        remove_attributes(text_id)
+
     # Save some memory
     selection_map_.clear()
+
+def remove_attributes(text_id):
+    design = app_.activeProduct
+
+    old_attrs = design.findAttributes('thomasa88_ParametricText', f'hasParametricText_{text_id}')
+    for old_attr in old_attrs:
+        old_attr.deleteMe()
+    
+    custom_text_attr = design.attributes.itemByName('thomasa88_ParametricText', f'customText_{text_id}')
+    if custom_text_attr:
+        custom_text_attr.deleteMe()
 
 def load(cmd):
     global selection_map_
