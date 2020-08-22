@@ -57,17 +57,14 @@ error_catcher_ = thomasa88lib.error.ErrorCatcher(msgbox_in_debug=False)
 events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
 manifest_ = thomasa88lib.manifest.read()
 
+# Contains selections for the currently active dialog
+# This dict must be reset every time the dialog is opened,
+# as the user might have cancelled it the last time.
 selection_map_ = defaultdict(list)
+
 last_selected_row_ = None
 addin_updating_select_ = False
 removed_texts_ = []
-
-### design.attributes to save
-### select to point out. a text prompt to ask for parameter name
-### command dialog - use the same dialog for removing selections
-### update when parameter changes? need refresh button???
-### design.userParameters[0].name / .comment
-### design.rootComponent.sketches
 
 def run(context):
     global app_
@@ -86,7 +83,7 @@ def run(context):
 
         # Use a Command to get a transaction when renaming
         map_cmd_def = ui_.commandDefinitions.addButtonDefinition(MAP_CMD_ID,
-                                                                  f'Map parameter to text',
+                                                                  f'Modify Text Parameters',
                                                                   f'{NAME} (v {manifest_["version"]})',
                                                                   '')
         events_manager_.add_handler(map_cmd_def.commandCreated,
@@ -104,6 +101,7 @@ def run(context):
         #map_control.isPromoted = True
 
         events_manager_.add_handler(app_.documentSaving, callback=document_saving_handler)
+        events_manager_.add_handler(ui_.commandTerminated, callback=command_terminated_handler)
 
 def stop(context):
     with error_catcher_:
@@ -176,7 +174,8 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         parameter_input: adsk.core.DropDownCommandInput = args.input
         custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
         # Using isReadOnly instead of isEnabled, to allow the user to still select the row
-        custom_input.isReadOnly = (parameter_input.selectedItem.index != 0)
+        has_custom_text = (parameter_input.selectedItem.index == 0)
+        custom_input.isReadOnly = not has_custom_text
     elif args.input.id.startswith('custom_'):
         need_update_select = True
     elif args.input.id.startswith('selected_'):
@@ -328,19 +327,21 @@ def save(cmd):
             if parameter:
                 text = parameter.comment
             else:
-                text = None
+                text = '???'
         if text is None:
             text = ''
 
         remove_attributes(text_id)
 
+        if parameter_name:
+            design.attributes.add('thomasa88_ParametricText', f'customTextType_{text_id}', 'parameter')
+            design.attributes.add('thomasa88_ParametricText', f'customTextValue_{text_id}', parameter_name)
+        else:
+            design.attributes.add('thomasa88_ParametricText', f'customTextType_{text_id}', 'custom')
+            design.attributes.add('thomasa88_ParametricText', f'customTextValue_{text_id}', text)
+    
         for sketch_text in selections:
-            if parameter_name:
-                sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', 'parameter')
-                design.attributes.add('thomasa88_ParametricText', f'customText_{text_id}', parameter_name)
-            else:
-                sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', 'custom')
-                design.attributes.add('thomasa88_ParametricText', f'customText_{text_id}', text)
+            sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
             shown_text = text.replace('<version>', str(app_.activeDocument.dataFile.latestVersionNumber + 1))
             sketch_text.text = shown_text
 
@@ -357,48 +358,79 @@ def remove_attributes(text_id):
     for old_attr in old_attrs:
         old_attr.deleteMe()
     
-    custom_text_attr = design.attributes.itemByName('thomasa88_ParametricText', f'customText_{text_id}')
-    if custom_text_attr:
-        custom_text_attr.deleteMe()
+    custom_type = design.attributes.itemByName('thomasa88_ParametricText', f'customTextType_{text_id}')
+    if custom_type:
+        custom_type.deleteMe()
+
+    custom_value = design.attributes.itemByName('thomasa88_ParametricText', f'customTextValue_{text_id}')
+    if custom_value:
+        custom_value.deleteMe()
 
 def load(cmd):
     global selection_map_
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
-    design: adsk.fusion.Design = app_.activeProduct
 
     selection_map_.clear()
+    texts = get_texts()
 
-    text_types = {}
-
-    attrs = design.findAttributes('thomasa88_ParametricText', 're:hasParametricText_[0-9]+')
-    for attr in attrs:
-        # Features might be consumed and return on rollback! Don't delete attribute (?)
-        #if not attr.parent:
-        #    attr.deleteMe()
-
-        text_id = get_text_id(attr.name)
-        selections = selection_map_[text_id]
-        if attr.parent:
-            selections.append(attr.parent)
-        
-        if attr.otherParents:
-            for other_parent in attr.otherParents:
-                selections.append(other_parent)
-        
-        text_types[text_id] = attr.value
-
-    for text_id in selection_map_.keys():
-        text_type = text_types[text_id]
-        custom_text_attr = design.attributes.itemByName('thomasa88_ParametricText', f'customText_{text_id}')
-        if custom_text_attr:
-            custom_text = custom_text_attr.value
-        else:
-            custom_text = None
-
+    for text_id, text_info in texts.items():
+        selection_map_[text_id] = text_info.sketch_texts
         add_row(table_input, text_id, new_row=False,
-                text_type=text_type,
-                custom_text=custom_text)
+                    text_type=text_info.text_type,
+                    custom_text=text_info.text_value)
+
+class TextInfo:
+    def __init__(self):
+        self.sketch_texts = []
+        self.text_type = None
+        self.text_value = None
+
+def get_texts():
+    design: adsk.fusion.Design = app_.activeProduct
+
+    texts = defaultdict(TextInfo)
+
+    type_attrs = [attr for attr in design.attributes.itemsByGroup('thomasa88_ParametricText')
+                  if attr.name.startswith('customTextType_')]    
+    for type_attr in type_attrs:
+        if not type_attr:
+            continue
+        text_id = get_text_id(type_attr.name)
+        value_attr = design.attributes.itemByName('thomasa88_ParametricText', f'customTextValue_{text_id}')
+        if not value_attr:
+            continue
+        text_info = texts[text_id]
+        text_info.text_type = type_attr.value
+        text_info.text_value = value_attr.value
+
+        # Get all sketch texts belonging to the attribute
+        has_attrs = design.findAttributes('thomasa88_ParametricText', f're:hasParametricText_{text_id}')
+        for has_attr in has_attrs:
+            sketch_texts = text_info.sketch_texts
+            if has_attr.parent:
+                sketch_texts.append(has_attr.parent)        
+            if has_attr.otherParents:
+                for other_parent in has_attr.otherParents:
+                    sketch_texts.append(other_parent)
     
+    return texts
 
 def document_saving_handler(args: adsk.core.DocumentEventArgs):
     print(f"{NAME} todo: Update version numbers before save")
+
+def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
+    if args.commandId == 'ChangeParameterCommand': # args.commandTerminationReason
+        design: adsk.fusion.Design = app_.activeProduct
+        # User (might have) changed a parameter
+        texts = get_texts()
+        for text_id, text_info in texts.items():
+            if text_info.text_type == 'parameter':
+                parameter = design.userParameters.itemByName(text_info.text_value)
+                if parameter:
+                    text = parameter.comment
+                else:
+                    text = '???'
+                
+                if text_info.sketch_texts and text_info.sketch_texts[0].text != text:
+                    for sketch_text in text_info.sketch_texts:
+                        sketch_text.text = text
