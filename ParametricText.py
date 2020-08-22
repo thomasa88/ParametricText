@@ -101,6 +101,8 @@ def run(context):
         map_control.isPromotedByDefault = True
         #map_control.isPromoted = True
 
+        events_manager_.add_handler(app_.documentSaving, callback=document_saving_handler)
+
 
 def stop(context):
     with error_catcher_:
@@ -309,7 +311,8 @@ def save(cmd):
             else:
                 sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', 'custom')
                 design.attributes.add('thomasa88_ParametricText', f'customText_{text_id}', text)
-            sketch_text.text = text
+            shown_text = text.replace('<version>', str(app_.activeDocument.dataFile.latestVersionNumber + 1))
+            sketch_text.text = shown_text
 
     # Save some memory
     selection_map_.clear()
@@ -352,3 +355,6 @@ def load(cmd):
                 text_type=text_type,
                 custom_text=custom_text)
     
+
+def document_saving_handler(args: adsk.core.DocumentEventArgs):
+    print(f"{NAME} todo: Update version numbers before save")
