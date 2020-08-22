@@ -67,7 +67,11 @@ manifest_ = thomasa88lib.manifest.read()
 # Contains selections for the currently active dialog
 # This dict must be reset every time the dialog is opened,
 # as the user might have cancelled it the last time.
-selection_map_ = defaultdict(list)
+dialog_selection_map_ = defaultdict(list)
+
+# It seems that attributes are not saved until the command is executed,
+# so we must keep the ID in a buffer, to keep track correctly
+dialog_next_id_ = None
 
 last_selected_row_ = None
 addin_updating_select_ = False
@@ -166,7 +170,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
 ### preview: executePreview show text from param.
 
 def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
-    global selection_map_
+    global dialog_selection_map_
     design: adsk.fusion.Design = app_.activeProduct
     table_input: adsk.core.TableCommandInput = args.inputs.itemById('table')
     select_input = args.inputs.itemById('select')
@@ -197,13 +201,13 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
                 text_id = get_text_id(table_input.getInputAtPosition(row, 0))
                 selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
                 
-                selections = selection_map_[text_id]
+                selections = dialog_selection_map_[text_id]
                 selections.clear()
                 for i in range(select_input.selectionCount):
                     text_proxy = select_input.selection(i).entity
                     sketch = text_proxy.parentSketch
                     selections.append(text_proxy)
-                selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
+
                 set_selected_text(selected_input, selections)
 
     if need_update_select:
@@ -220,7 +224,7 @@ def update_select_input(table_input, force=False):
         select_input.clearSelection()
         if row != -1:
             text_id = get_text_id(table_input.getInputAtPosition(row, 0))
-            for text_proxy in selection_map_[text_id]:
+            for text_proxy in dialog_selection_map_[text_id]:
                 # "This method is not valid within the commandCreated event but must be used later
                 # in the command lifetime. If you want to pre-populate the selection when the
                 # command is starting, you can use this method in the activate method of the Command."
@@ -240,11 +244,11 @@ def get_text_id(input_or_str):
     return input_or_str.split('_')[-1]
 
 def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None):
-    global selection_map_
+    global dialog_selection_map_
     global last_selected_row_
     design: adsk.fusion.Design = app_.activeProduct
 
-    selections = selection_map_[text_id]
+    selections = dialog_selection_map_[text_id]
 
     row_index = table_input.rowCount
 
@@ -305,16 +309,15 @@ def remove_row(table_input: adsk.core.TableCommandInput, row_index):
     ### Restore original texts, if cached, if we have live update. Also on unselect.
 
 def get_next_id():
+    global dialog_next_id_
     design: adsk.fusion.Design = app_.activeProduct
     next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
-    if not next_id_attr:
-        next_id_attr = design.attributes.add('thomasa88_ParametricText', 'nextId', str(0))
-    text_id = int(next_id_attr.value)
-    next_id_attr.value = str(text_id + 1)
+    text_id = dialog_next_id_
+    dialog_next_id_ += 1
     return text_id
 
 def map_cmd_execute_handler(args: adsk.core.CommandEventArgs):
-    global selection_map_
+    global dialog_selection_map_
     cmd = args.command
     save(cmd)
 
@@ -322,9 +325,13 @@ def save(cmd):
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
     design: adsk.fusion.Design = app_.activeProduct
 
+    global dialog_next_id_
+    design.attributes.add('thomasa88_ParametricText', 'nextId', str(dialog_next_id_))
+    dialog_next_id_ = None
+
     for row_index in range(table_input.rowCount):
         text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
-        selections = selection_map_[text_id]
+        selections = dialog_selection_map_[text_id]
         parameter_input = table_input.commandInputs.itemById(f'parameter_{text_id}')
         selected_parameter = parameter_input.selectedItem
         if selected_parameter.index == 0:
@@ -357,7 +364,7 @@ def save(cmd):
         remove_attributes(text_id)
 
     # Save some memory
-    selection_map_.clear()
+    dialog_selection_map_.clear()
 
 def remove_attributes(text_id):
     design = app_.activeProduct
@@ -379,14 +386,22 @@ def evaluate_text(text):
     return shown_text
 
 def load(cmd):
-    global selection_map_
+    global dialog_selection_map_
+    design: adsk.fusion.Design = app_.activeProduct
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
 
-    selection_map_.clear()
+    global dialog_next_id_
+    next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
+    if next_id_attr:
+        dialog_next_id_ = int(next_id_attr.value)
+    else:
+        dialog_next_id_ = 0
+
+    dialog_selection_map_.clear()
     texts = get_texts()
 
     for text_id, text_info in texts.items():
-        selection_map_[text_id] = text_info.sketch_texts
+        dialog_selection_map_[text_id] = text_info.sketch_texts
         add_row(table_input, text_id, new_row=False,
                     text_type=text_info.text_type,
                     custom_text=text_info.text_value)
