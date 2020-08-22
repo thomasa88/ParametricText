@@ -135,7 +135,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     design: adsk.fusion.Design = app_.activeProduct
 
     cmd.setDialogMinimumSize(450, 200)
-    cmd.setDialogInitialSize(450, 200)
+    cmd.setDialogInitialSize(450, 300)
 
     events_manager_.add_handler(cmd.execute,
                                 callback=map_cmd_execute_handler)
