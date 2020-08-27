@@ -149,7 +149,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     about = cmd.commandInputs.addTextBoxCommandInput('about', '', f'{NAME} v{manifest_["version"]}', 1, True)
     about.isFullWidth = True
     
-    table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '')
+    table_input = cmd.commandInputs.addTableCommandInput('table', '', 2, '1:2')
     table_input.isFullWidth = True
     table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False, './resources/add', True)
     table_remove = table_input.commandInputs.addBoolValueInput('remove_row', '-', False, './resources/remove', True)
@@ -186,13 +186,6 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         row = table_input.selectedRow
         if row != -1:
             remove_row(table_input, row)
-    elif args.input.id.startswith('parameter_'):
-        need_update_select = True
-        parameter_input: adsk.core.DropDownCommandInput = args.input
-        custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
-        # Using isReadOnly instead of isEnabled, to allow the user to still select the row
-        has_custom_text = (parameter_input.selectedItem.index == 0)
-        custom_input.isReadOnly = not has_custom_text
     elif args.input.id.startswith('custom_'):
         need_update_select = True
     elif args.input.id.startswith('selected_'):
@@ -267,27 +260,6 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
     #addTextBoxCommandInput(f'selected_{text_id}', '', '', 1, True)
     selected_input.isReadOnly = True
     set_selected_text(selected_input, selections)
-
-    parameter_input = table_input.commandInputs.addDropDownCommandInput(f'parameter_{text_id}', '',
-                                                                        adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-
-    custom_item = parameter_input.listItems.add('Custom value', True, './resources/custom_text')
-    if text_type == 'custom':
-        custom_item.isSelected = True
-
-    # parameter_input.listItems.addSeparator(-1)
-
-    # for param in design.userParameters:
-    #     param_item = parameter_input.listItems.add(param.name, False, './resources/user_parameter')
-    #     if text_type == 'parameter' and param.name == custom_text:
-    #         param_item.isSelected = True
-    
-    if not new_row and not parameter_input.selectedItem and custom_text is not None:
-        # Parameter has disappeared.. Roll with it..
-        # Cross icon?
-        param_item = parameter_input.listItems.add(param.name, False, './resources/user_parameter')
-        param_item.isSelected = True
-        last_selected_row_ = row_index
     
     if text_type == 'custom':
         custom_input_text = custom_text
@@ -296,13 +268,11 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
     custom_input = table_input.commandInputs.addStringValueInput(f'custom_{text_id}', '', custom_input_text)
 
     table_input.addCommandInput(selected_input, row_index, SELECTED_COLUMN)
-    table_input.addCommandInput(parameter_input, row_index, 1)
-    table_input.addCommandInput(custom_input, row_index, 2)
+    table_input.addCommandInput(custom_input, row_index, 1)
     
     if new_row:
         table_input.selectedRow = row_index
         select_input = table_input.parentCommand.commandInputs.itemById('select')
-        addin_updating_select_
         select_input.clearSelection()
 
 def remove_row(table_input: adsk.core.TableCommandInput, row_index):
@@ -340,23 +310,12 @@ def save(cmd):
     for row_index in range(table_input.rowCount):
         text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
         selections = dialog_selection_map_[text_id]
-        parameter_input = table_input.commandInputs.itemById(f'parameter_{text_id}')
-        selected_parameter = parameter_input.selectedItem
-        if selected_parameter.index == 0:
-            parameter_name = None
-            text = table_input.commandInputs.itemById(f'custom_{text_id}').value
-        else:
-            parameter_name = selected_parameter.name
-            text = get_parameter_comment(parameter_name)
+        text = table_input.commandInputs.itemById(f'custom_{text_id}').value
 
         remove_attributes(text_id)
 
-        if parameter_name:
-            design.attributes.add('thomasa88_ParametricText', f'customTextType_{text_id}', 'parameter')
-            design.attributes.add('thomasa88_ParametricText', f'customTextValue_{text_id}', parameter_name)
-        else:
-            design.attributes.add('thomasa88_ParametricText', f'customTextType_{text_id}', 'custom')
-            design.attributes.add('thomasa88_ParametricText', f'customTextValue_{text_id}', text)
+        design.attributes.add('thomasa88_ParametricText', f'customTextType_{text_id}', 'custom')
+        design.attributes.add('thomasa88_ParametricText', f'customTextValue_{text_id}', text)
     
         for sketch_text in selections:
             sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
@@ -486,11 +445,7 @@ def get_texts():
 def document_saving_handler(args: adsk.core.DocumentEventArgs):
     texts = get_texts()
     for text_id, text_info in texts.items():
-        text = ''
-        if text_info.text_type == 'parameter':
-            text = get_parameter_comment(text_info.text_value)
-        else:
-            text = text_info.text_value
+        text = text_info.text_value
         
         if '_.version' in text:
             for sketch_text in text_info.sketch_texts:
@@ -510,12 +465,3 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     #elif args.commandId == 'FusionComputeAllCommand':
     #    load()
     #    save()
-
-def get_parameter_comment(parameter_name):
-    design: adsk.fusion.Design = app_.activeProduct
-    parameter = design.userParameters.itemByName(parameter_name)
-    if parameter:
-        text = parameter.comment
-    else:
-        text = '???'
-    return text
