@@ -1,11 +1,8 @@
 # ![](resources/logo/32x32.png) ParametricText
 
-ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text Parameters* in sketches - as far as it can be done.
+ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text Parameters* in sketches.
 
-Text parameters can be created in two ways:
-
-* Custom text entered in the *Change Text Parameters* dialog
-* Using the comment of Fusion 360™ *User Parameters*
+Text parameters can be pure text or use parameter values by using a special syntax.
 
 All parameters are stored within in the document upon save. The texts are always "rendered" in the sketches, so they can be viewed without having the add-in. However, to correctly update the values, the add-in is needed.
 
@@ -26,24 +23,40 @@ Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Paramet
 
 Use the + and x symbols to add and remove rows from the table. To specify what sketch texts to affect, click the desired row and then select the sketch texts in the design.
 
-Select to use a *Custom Text*, entered in the text field to the right, or the comment of a *User Parameter*, as defined *Change Parameters* in the *Modify* menu.
+Enter the text in the text field.
 
 The add-in can be temporarily disabled using the *Scripts and Add-ins* dialog. Press *Shift+S* in Fusion 360™ and go to the *Add-Ins* tab.
 
-## Special keywords
+## Parameters
 
-The following special keywords are replaced with text dynamically by the add-in:
+ParametricText has basic support for including parameter values using [Python Format Specifiers](https://docs.python.org/3/library/string.html#formatspec). By writing `{parameter}`, the text is substituted by the parameter value. E.g., if the parameter *d10* has the value 20, `{d10}` becomes `20.0`.
 
-| Keyword         | Description                                                  |
-| --------------- | ------------------------------------------------------------ |
-| &lt;version&gt; | The current version of the file. The value is updated just before the file is saved, to reflect the correct value in the saved file.<br /><br />Example: *23* |
+The special value `_` gives access to global "parameters", such as document version.
+
+| Field Value (within `{}`)               | Description          | Example Result     |
+| --------------------------------------- | -------------------- | ------------------ |
+| `_.version`                             | Document version     | `24`               |
+| *`parameter `* or *`parameter`*`.value` | Parameter value      | `10.0`             |
+| *`parameter`*`.comment`                 | Parameter comment    | `Width of the rod` |
+| *`parameter`*`.expr`                    | Parameter expression | `5 mm + 10 mm`     |
+| *`parameter`*`.unit`                    | Parameter unit       | `mm`               |
+
+## Examples
+
+| Value                | Result                            |
+| -------------------- | --------------------------------- |
+| `v{_.version:02}`    | `v05` (zero-padded to two digits) |
+| `{d1:.3f} {d1.unit}` | `15.000 mm` (3 decimal places)    |
+| `{width:.0f}`        | `6` (No decimal places)           |
 
 ## Known Limitations
 
 * Assigning text to sketch texts with negative angles result in error ([Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-unable-to-modify-text-of-a-sketchtext-created-manually-with/m-p/9502107/highlight/true#M10086)).
   * Workaround is to specify a positive angle. That is, `-90` becomes `360-90 = 270`. It might be hard to change `-180` to `180` without entering another positive value in-between.
 * Any horizontal or vertical flip of the text is removed when assigning texts ([Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/sketchtext-object/m-p/8562981/highlight/true#M7276)).
-* *Compute All* does not update the text parameters.
+* *Compute All* does currently not update the text parameters.
+* `{` and `}` cannot be entered on keyboards where they require *Alt Gr* to be pressed.
+  * Workaround is to copy and paste these characters.
 
 ## Author
 
@@ -55,6 +68,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
+* v 0.2.0
+  * Basic support for Python format specifiers.
 * v 0.1.1
   * Enable *Run on Startup* by default.
 * v 0.1.0
