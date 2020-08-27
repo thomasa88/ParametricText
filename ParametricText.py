@@ -26,6 +26,7 @@
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from collections import defaultdict
+import re
 
 NAME = 'ParametricText'
 
@@ -274,12 +275,12 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
     if text_type == 'custom':
         custom_item.isSelected = True
 
-    parameter_input.listItems.addSeparator(-1)
+    # parameter_input.listItems.addSeparator(-1)
 
-    for param in design.userParameters:
-        param_item = parameter_input.listItems.add(param.name, False, './resources/user_parameter')
-        if text_type == 'parameter' and param.name == custom_text:
-            param_item.isSelected = True
+    # for param in design.userParameters:
+    #     param_item = parameter_input.listItems.add(param.name, False, './resources/user_parameter')
+    #     if text_type == 'parameter' and param.name == custom_text:
+    #         param_item.isSelected = True
     
     if not new_row and not parameter_input.selectedItem and custom_text is not None:
         # Parameter has disappeared.. Roll with it..
@@ -382,11 +383,47 @@ def remove_attributes(text_id):
     if custom_value:
         custom_value.deleteMe()
 
+SUBST_PATTERN = re.compile(r'{([^}]+)}')
 def evaluate_text(text, next_version=False):
-    version = app_.activeDocument.dataFile.latestVersionNumber
-    if next_version:
-        version += 1
-    shown_text = text.replace('<version>', str(version))
+    design: adsk.fusion.Design = app_.activeProduct
+    def sub_func(subst_match):
+        # https://www.python.org/dev/peps/pep-3101/
+        # https://docs.python.org/3/library/string.html#formatspec
+        var, options_sep, options = subst_match.group(1).partition(':')
+
+        var_name, member_sep, member = var.partition('.')
+
+        if var_name == '_':
+            if member == 'version':
+                version = app_.activeDocument.dataFile.latestVersionNumber
+                if next_version:
+                    version += 1
+                value = version
+            else:
+                return f'<Unknown member of {var_name}: {member}>'
+        else:
+            param = design.allParameters.itemByName(var_name)
+            if param is None:
+                return f'<Unknown parameter: {var_name}>'
+
+            if member == 'value' or member == '':
+                value = param.value
+            elif member == 'comment':
+                value = param.comment
+            elif member == 'expr':
+                value = param.expression
+            elif member == 'unit':
+                value = param.unit
+            else:
+                return f'<Unknown member of {var_name}: {member}>'
+            
+        try:
+            formatted_str = ('{' + options_sep + options + '}').format(value)
+        except ValueError as e:
+            formatted_str = f'<{e.args[0]}>'
+        return formatted_str
+
+    shown_text = SUBST_PATTERN.sub(sub_func, text)
     return shown_text
 
 def load(cmd):
@@ -455,7 +492,7 @@ def document_saving_handler(args: adsk.core.DocumentEventArgs):
         else:
             text = text_info.text_value
         
-        if '<version>' in text:
+        if '_.version' in text:
             for sketch_text in text_info.sketch_texts:
                 sketch_text.text = evaluate_text(text, next_version=True)
 
@@ -464,12 +501,11 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
         # User (might have) changed a parameter
         texts = get_texts()
         for text_id, text_info in texts.items():
-            if text_info.text_type == 'parameter':
-                text = get_parameter_comment(text_info.text_value)
-                
-                if text_info.sketch_texts and text_info.sketch_texts[0].text != text:
-                    for sketch_text in text_info.sketch_texts:
-                        sketch_text.text = evaluate_text(text)
+            new_text = evaluate_text(text_info.text_value)
+            
+            if text_info.sketch_texts and text_info.sketch_texts[0].text != new_text:
+                for sketch_text in text_info.sketch_texts:
+                    sketch_text.text = evaluate_text(new_text)
     ### TODO: Update when user selects "Compute All"
     #elif args.commandId == 'FusionComputeAllCommand':
     #    load()
