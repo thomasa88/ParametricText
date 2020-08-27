@@ -20,8 +20,6 @@ Make sure the directory is named `ParametricText`, with no suffix.
 
 ## Usage
 
-Press Shift+S in Fusion 360™ and go to the *Add-Ins* tab. Then select the add-in and click the *Run* button. Optionally select *Run on Startup*.
-
 To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select.
 
 Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Parameters*.
@@ -29,6 +27,8 @@ Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Paramet
 Use the + and x symbols to add and remove rows from the table. To specify what sketch texts to affect, click the desired row and then select the sketch texts in the design.
 
 Select to use a *Custom Text*, entered in the text field to the right, or the comment of a *User Parameter*, as defined *Change Parameters* in the *Modify* menu.
+
+The add-in can be temporarily disabled using the *Scripts and Add-ins* dialog. Press *Shift+S* in Fusion 360™ and go to the *Add-Ins* tab.
 
 ## Special keywords
 
@@ -55,5 +55,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
-* v0.1.0
+* v 0.1.1
+  * Enable *Run on Startup* by default.
+* v 0.1.0
   * First beta release
