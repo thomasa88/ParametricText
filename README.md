@@ -71,6 +71,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 * v 0.2.0
   * Basic support for Python format specifiers.
   * *Insert braces* button.
+  * Selection tooltip, to show all selections when the text is truncated.
 * v 0.1.1
   * Enable *Run on Startup* by default.
 * v 0.1.0

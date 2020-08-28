@@ -259,9 +259,16 @@ def update_select_input(table_input, force=False):
 
 def set_selected_text(selected_input, selections):
     if selections:
-        selected_input.value = ', '.join(sorted(set([s.parentSketch.name for s in selections])))
+        value = ', '.join(sorted(set([s.parentSketch.name for s in selections])))
+        # Indicate if not all selections are visible. Show all in tooltip.
+        if len(selections) > 2:
+            selected_input.value = f'({len(selections)}) {value}'
+        else:
+            selected_input.value = value
+        selected_input.tooltip = value
     else:
         selected_input.value = '<No selections>'
+        selected_input.tooltip = ''
 
 def get_text_id(input_or_str):
     if isinstance(input_or_str, adsk.core.CommandInput):
