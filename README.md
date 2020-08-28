@@ -56,7 +56,7 @@ The special value `_` gives access to global "parameters", such as document vers
 * Any horizontal or vertical flip of the text is removed when assigning texts ([Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/sketchtext-object/m-p/8562981/highlight/true#M7276)).
 * *Compute All* does currently not update the text parameters.
 * `{` and `}` cannot be entered on keyboards where they require *Alt Gr* to be pressed.
-  * Workaround is to copy and paste these characters.
+  * Workaround is to use the `{}` button.
 
 ## Author
 
@@ -70,6 +70,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 * v 0.2.0
   * Basic support for Python format specifiers.
+  * *Insert braces* button.
 * v 0.1.1
   * Enable *Run on Startup* by default.
 * v 0.1.0

@@ -152,9 +152,21 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     table_input = cmd.commandInputs.addTableCommandInput('table', '', 2, '1:2')
     table_input.isFullWidth = True
     table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False, './resources/add', True)
+    table_add.tooltip = 'Add a new row'
     table_remove = table_input.commandInputs.addBoolValueInput('remove_row', '-', False, './resources/remove', True)
+    table_remove.tooltip = 'Remove selected row'
+    table_button_spacer = table_input.commandInputs.addBoolValueInput('spacer', '  ', False, '', True)
+    table_button_spacer.isEnabled = False
+    insert_braces = table_input.commandInputs.addBoolValueInput('insert_braces', '{}', False, './resources/braces', True)
+    insert_braces.tooltip = 'Insert curly braces'
+    insert_braces.tooltipDescription = ('Inserts curly braces at the end of the text box of the currently selected row.\n\n'
+                                        'This button allows insertion of curly braces when Fusion 360™ '
+                                        'prevents insertion when using a keyboard layout that requires AltGr to be pressed.')
+    
     table_input.addToolbarCommandInput(table_add)
     table_input.addToolbarCommandInput(table_remove)
+    table_input.addToolbarCommandInput(table_button_spacer)
+    table_input.addToolbarCommandInput(insert_braces)
     
     select_input = cmd.commandInputs.addSelectionInput('select', 'Sketch Texts', '')
     select_input.addSelectionFilter(adsk.core.SelectionCommandInput.Texts)
@@ -186,6 +198,12 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         row = table_input.selectedRow
         if row != -1:
             remove_row(table_input, row)
+    elif args.input.id == 'insert_braces':
+        row = table_input.selectedRow
+        if row != -1:
+            text_id = get_text_id(table_input.getInputAtPosition(row, 0))
+            custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
+            custom_input.value += '{}'
     elif args.input.id.startswith('custom_'):
         need_update_select = True
     elif args.input.id.startswith('selected_'):
