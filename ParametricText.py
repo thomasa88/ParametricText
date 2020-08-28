@@ -56,8 +56,6 @@ PANEL_IDS = [
             'SnapshotSolidModifyPanel'
         ]
 
-SELECTED_COLUMN = 0
-
 app_ = None
 ui_ = None
 
@@ -149,7 +147,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     about = cmd.commandInputs.addTextBoxCommandInput('about', '', f'{NAME} v{manifest_["version"]}', 1, True)
     about.isFullWidth = True
     
-    table_input = cmd.commandInputs.addTableCommandInput('table', '', 2, '1:2')
+    table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '4:1:8')
     table_input.isFullWidth = True
     # Fusion error when trying to set minimum higher than 4
     table_input.minimumVisibleRows = 4
@@ -175,6 +173,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     select_input = cmd.commandInputs.addSelectionInput('select', 'Sketch Texts', '')
     select_input.addSelectionFilter(adsk.core.SelectionCommandInput.Texts)
     select_input.setSelectionLimits(0, 0)
+    select_input.isVisible = False
 
     # Reset dialog state
     global removed_texts_
@@ -195,6 +194,7 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
     table_input: adsk.core.TableCommandInput = args.inputs.itemById('table')
     select_input = args.inputs.itemById('select')
     need_update_select = False
+    update_select_force = False
     text_id = get_text_id(args.input)
     if args.input.id == 'add_row':
         add_row(table_input, get_next_id())
@@ -212,6 +212,13 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         need_update_select = True
     elif args.input.id.startswith('selected_'):
         need_update_select = True
+    elif args.input.id.startswith('clear_'):
+        selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
+        selections = dialog_selection_map_[text_id]
+        selections.clear()
+        set_selected_text(selected_input, selections)
+        need_update_select = True
+        update_select_force = True
     elif args.input.id == 'select':
         global addin_updating_select_
         row = table_input.selectedRow
@@ -231,7 +238,7 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
 
     if need_update_select:
         # Wait for the table selection to update before updating select input
-        events_manager_.delay(lambda: update_select_input(table_input))
+        events_manager_.delay(lambda: update_select_input(table_input, update_select_force))
 
 def update_select_input(table_input, force=False):
     global last_selected_row_
@@ -286,9 +293,12 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
 
     # Using StringValueInput + isReadOnly to allow the user to still select the row
     selected_input = table_input.commandInputs.addStringValueInput(f'selected_{text_id}', '', '')
-    #addTextBoxCommandInput(f'selected_{text_id}', '', '', 1, True)
     selected_input.isReadOnly = True
     set_selected_text(selected_input, selections)
+
+    clear_selection_input = table_input.commandInputs.addBoolValueInput(f'clear_{text_id}', 'X',
+                                                                        False, './resources/clear_selection', True)
+    clear_selection_input.tooltip = 'Clear selection'    
     
     if text_type == 'custom':
         custom_input_text = custom_text
@@ -296,8 +306,9 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
         custom_input_text = ''
     custom_input = table_input.commandInputs.addStringValueInput(f'custom_{text_id}', '', custom_input_text)
 
-    table_input.addCommandInput(selected_input, row_index, SELECTED_COLUMN)
-    table_input.addCommandInput(custom_input, row_index, 1)
+    table_input.addCommandInput(selected_input, row_index, 0)
+    table_input.addCommandInput(clear_selection_input, row_index, 1)
+    table_input.addCommandInput(custom_input, row_index, 2)
     
     if new_row:
         table_input.selectedRow = row_index

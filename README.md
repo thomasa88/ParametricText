@@ -57,6 +57,7 @@ The special value `_` gives access to global "parameters", such as document vers
 * *Compute All* does currently not update the text parameters.
 * `{` and `}` cannot be entered on keyboards where they require *Alt Gr* to be pressed.
   * Workaround is to use the `{}` button.
+* The mouse pointer must be moved before clicking on the same sketch text again, to select/unselect.
 
 ## Author
 
@@ -72,6 +73,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
   * Basic support for Python format specifiers.
   * *Insert braces* button.
   * Selection tooltip, to show all selections when the text is truncated.
+  * Hide "select control". Integrate clear button into table.
 * v 0.1.1
   * Enable *Run on Startup* by default.
 * v 0.1.0
