@@ -88,6 +88,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
   * Selection tooltip, to show all selections when the text is truncated.
   * Hide "select control". Integrate clear button into table.
   * Use correct unit/scaling when showing parameter value.
+  * Quick reference in dialog.
 * v 0.1.1
   * Enable *Run on Startup* by default.
 * v 0.1.0
