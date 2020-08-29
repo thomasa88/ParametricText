@@ -21,9 +21,13 @@ To parameterize texts, create sketches with Text features. Make sure to enter so
 
 Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Parameters*.
 
-Use the + and x symbols to add and remove rows from the table. To specify what sketch texts to affect, click the desired row and then select the sketch texts in the design.
+Use the `+` and `x` buttons to add and remove rows from the table.
 
-Enter the text in the text field.
+To specify what sketch texts to affect, click the desired row and then select the sketch texts in the design. Use the clear button (![](resources/clear_selection/16x16.png)) to clear the selections.
+
+Enter the text in the text field. The text can contain values from parameters. See [Parameters](#parameters).
+
+Press OK to save the changes.
 
 The add-in can be temporarily disabled using the *Scripts and Add-ins* dialog. Press *Shift+S* in Fusion 360™ and go to the *Add-Ins* tab.
 
@@ -33,13 +37,13 @@ ParametricText has basic support for including parameter values using [Python Fo
 
 The special value `_` gives access to global "parameters", such as document version.
 
-| Field Value (within `{}`)               | Description          | Example Result     |
-| --------------------------------------- | -------------------- | ------------------ |
-| `_.version`                             | Document version     | `24`               |
-| *`parameter `* or *`parameter`*`.value` | Parameter value      | `10.0`             |
-| *`parameter`*`.comment`                 | Parameter comment    | `Width of the rod` |
-| *`parameter`*`.expr`                    | Parameter expression | `5 mm + 10 mm`     |
-| *`parameter`*`.unit`                    | Parameter unit       | `mm`               |
+| Field Value (within `{}`)               | Description                                  | Example Result     |
+| --------------------------------------- | -------------------------------------------- | ------------------ |
+| `_.version`                             | Document version                             | `24`               |
+| *`parameter `* or *`parameter`*`.value` | Parameter value                              | `10.0`             |
+| *`parameter`*`.comment`                 | Parameter comment                            | `Width of the rod` |
+| *`parameter`*`.expr`                    | Parameter expression, as entered by the user | `5 mm + 10 mm`     |
+| *`parameter`*`.unit`                    | Parameter unit                               | `mm`               |
 
 ## Examples
 
@@ -48,6 +52,8 @@ The special value `_` gives access to global "parameters", such as document vers
 | `v{_.version:02}`    | `v05` (zero-padded to two digits) |
 | `{d1:.3f} {d1.unit}` | `15.000 mm` (3 decimal places)    |
 | `{width:.0f}`        | `6` (No decimal places)           |
+| `{width.expr}`       | `6 mm`                            |
+| `{height.expr}`      | `2 mm + width`                    |
 
 ## Known Limitations
 
