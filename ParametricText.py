@@ -56,6 +56,15 @@ PANEL_IDS = [
             'SnapshotSolidModifyPanel'
         ]
 
+QUICK_REF = '''<b>Quick Reference</b><br>
+{_.version}<br>
+{param}|{param.value}, {param.expr}, {param.unit}, {param.comment}<br>
+{_.version:03} = 024 (integer),<br>
+{param.value:.3f} = 1.000, {param.value:03.0f} = 001 (float),<br>
+{param.comment:.6} = My com
+'''
+QUICK_REF_LINES = QUICK_REF.count('<br>') + 1
+
 app_ = None
 ui_ = None
 
@@ -176,6 +185,9 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     select_input.addSelectionFilter(adsk.core.SelectionCommandInput.Texts)
     select_input.setSelectionLimits(0, 0)
     select_input.isVisible = False
+
+    quick_ref = table_input.commandInputs.addTextBoxCommandInput('quick_ref', '', QUICK_REF, QUICK_REF_LINES, True)
+    quick_ref.isFullWidth = True
 
     # Reset dialog state
     global removed_texts_

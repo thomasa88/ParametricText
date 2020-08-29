@@ -47,13 +47,14 @@ The special value `_` gives access to global "parameters", such as document vers
 
 ## Examples
 
-| Value                | Result                            |
-| -------------------- | --------------------------------- |
-| `v{_.version:02}`    | `v05` (zero-padded to two digits) |
-| `{d1:.3f} {d1.unit}` | `15.000 mm` (3 decimal places)    |
-| `{width:.0f}`        | `6` (No decimal places)           |
-| `{width.expr}`       | `6 mm`                            |
-| `{height.expr}`      | `2 mm + width`                    |
+| Value                | Result                                            |
+| -------------------- | ------------------------------------------------- |
+| `v{_.version:03}`    | `v005` (Integer zero-padded to three digits)      |
+| `{d1:.3f} {d1.unit}` | `15.000 mm` (3 decimal places)                    |
+| `{d1:03.0f}`         | `015` (Float/decimal zero-padded to three digits) |
+| `{width:.0f}`        | `6` (No decimal places)                           |
+| `{width.expr}`       | `6 mm`                                            |
+| `{height.expr}`      | `2 mm + width`                                    |
 
 ## Known Limitations
 
