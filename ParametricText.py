@@ -523,13 +523,14 @@ def get_texts():
     return texts
 
 def document_saving_handler(args: adsk.core.DocumentEventArgs):
-    texts = get_texts()
-    for text_id, text_info in texts.items():
-        text = text_info.text_value
-        
-        if '_.version' in text:
-            for sketch_text in text_info.sketch_texts:
-                sketch_text.text = evaluate_text(text, next_version=True)
+    if ui_.activeWorkspace.id == 'FusionSolidEnvironment':
+        texts = get_texts()
+        for text_id, text_info in texts.items():
+            text = text_info.text_value
+            
+            if '_.version' in text:
+                for sketch_text in text_info.sketch_texts:
+                    sketch_text.text = evaluate_text(text, next_version=True)
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     if args.commandId == 'ChangeParameterCommand': # args.commandTerminationReason
