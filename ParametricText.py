@@ -408,7 +408,7 @@ def evaluate_text(text, next_version=False):
 
         if var_name == '_':
             if member == 'version':
-                version = app_.activeDocument.dataFile.latestVersionNumber
+                version = app_.activeDocument.dataFile.versionNumber
                 if next_version:
                     version += 1
                 value = version
