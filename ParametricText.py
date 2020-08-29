@@ -70,7 +70,9 @@ dialog_selection_map_ = defaultdict(list)
 
 # It seems that attributes are not saved until the command is executed,
 # so we must keep the ID in a buffer, to keep track correctly
-dialog_next_id_ = None
+# Need to keep an ID per document, to handle that the user switches back
+# and forth between two documents with the dialog open
+dialog_next_id_ = {}
 
 last_selected_row_ = None
 addin_updating_select_ = False
@@ -328,10 +330,9 @@ def remove_row(table_input: adsk.core.TableCommandInput, row_index):
 
 def get_next_id():
     global dialog_next_id_
-    design: adsk.fusion.Design = app_.activeProduct
-    next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
-    text_id = dialog_next_id_
-    dialog_next_id_ += 1
+    file_id = app_.activeDocument.dataFile.id
+    text_id = dialog_next_id_[file_id]
+    dialog_next_id_[file_id] += 1
     return text_id
 
 def map_cmd_execute_handler(args: adsk.core.CommandEventArgs):
@@ -343,9 +344,8 @@ def save(cmd):
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
     design: adsk.fusion.Design = app_.activeProduct
 
-    global dialog_next_id_
-    design.attributes.add('thomasa88_ParametricText', 'nextId', str(dialog_next_id_))
-    dialog_next_id_ = None
+    if not save_next_id():
+        return
 
     for row_index in range(table_input.rowCount):
         text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
@@ -366,6 +366,20 @@ def save(cmd):
 
     # Save some memory
     dialog_selection_map_.clear()
+
+def save_next_id():
+    global dialog_next_id_
+    design: adsk.fusion.Design = app_.activeProduct
+    file_id = app_.activeDocument.dataFile.id
+    next_id = dialog_next_id_[file_id]
+    print("SAVE NEXT ID", next_id)
+    if next_id is None:
+        ui_.messageBox(f'{NAME}: Failed to save text ID counter. Save failed.\n\n'
+                       'Please inform the developer of the steps you performed to trigger this error.')
+        return False
+    design.attributes.add('thomasa88_ParametricText', 'nextId', str(next_id))
+    dialog_next_id_[file_id] = None
+    return True
 
 def remove_attributes(text_id):
     design = app_.activeProduct
@@ -428,15 +442,9 @@ def evaluate_text(text, next_version=False):
 
 def load(cmd):
     global dialog_selection_map_
-    design: adsk.fusion.Design = app_.activeProduct
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
 
-    global dialog_next_id_
-    next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
-    if next_id_attr:
-        dialog_next_id_ = int(next_id_attr.value)
-    else:
-        dialog_next_id_ = 0
+    load_next_id()
 
     dialog_selection_map_.clear()
     texts = get_texts()
@@ -446,6 +454,24 @@ def load(cmd):
         add_row(table_input, text_id, new_row=False,
                     text_type=text_info.text_type,
                     custom_text=text_info.text_value)
+
+def load_next_id():
+    global dialog_next_id_
+    design: adsk.fusion.Design = app_.activeProduct
+    file_id = app_.activeDocument.dataFile.id
+    next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
+    if next_id_attr:
+        if next_id_attr.value is None or next_id_attr.value == 'None':
+            ui_.messageBox(f'{NAME}: Text id count value is corrupt: {next_id_attr.value}.\n\n'
+                           'New texts might overwrite values of old texts. You should be able '
+                           'to recover by loading an old version of this document.\n\n'
+                           'Please inform the developer of what steps you performed to trigger this error.')
+            dialog_next_id_[file_id] = 100 # Try to skip past used IDs..
+        else:
+            dialog_next_id_[file_id] = int(next_id_attr.value)
+    else:
+        dialog_next_id_[file_id] = 0
+    print("LOAD NEXT ID", dialog_next_id_[file_id])
 
 class TextInfo:
     def __init__(self):
