@@ -43,13 +43,13 @@ ParametricText has basic support for including parameter values using [Python Fo
 
 The special value `_` gives access to global "parameters", such as document version.
 
-| Field Value (within `{}`)               | Description                                  | Example Result     |
-| --------------------------------------- | -------------------------------------------- | ------------------ |
-| `_.version`                             | Document version                             | `24`               |
-| *`parameter `* or *`parameter`*`.value` | Parameter value                              | `10.0`             |
-| *`parameter`*`.comment`                 | Parameter comment                            | `Width of the rod` |
-| *`parameter`*`.expr`                    | Parameter expression, as entered by the user | `5 mm + 10 mm`     |
-| *`parameter`*`.unit`                    | Parameter unit                               | `mm`               |
+| Field Value (within `{}`)              | Description                                  | Example Result     |
+| -------------------------------------- | -------------------------------------------- | ------------------ |
+| `_.version`                            | Document version                             | `24`               |
+| *`parameter`* or *`parameter`*`.value` | Parameter value                              | `10.0`             |
+| *`parameter`*`.comment`                | Parameter comment                            | `Width of the rod` |
+| *`parameter`*`.expr`                   | Parameter expression, as entered by the user | `5 mm + 10 mm`     |
+| *`parameter`*`.unit`                   | Parameter unit                               | `mm`               |
 
 ## Examples
 
@@ -82,6 +82,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
+* v 0.2.1
+  * Set table height to 10 rows.
 * v 0.2.0
   * Basic support for Python format specifiers.
   * *Insert braces* button.

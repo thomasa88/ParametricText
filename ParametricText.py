@@ -161,9 +161,8 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     
     table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '4:1:8')
     table_input.isFullWidth = True
-    # Fusion error when trying to set minimum higher than 4
-    table_input.minimumVisibleRows = 4
     table_input.maximumVisibleRows = 10
+    table_input.minimumVisibleRows = 10
 
     table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False, './resources/add', True)
     table_add.tooltip = 'Add a new row'
