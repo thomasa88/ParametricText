@@ -84,6 +84,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 * v 0.2.1
   * Set table height to 10 rows.
+  * Fix #1. Handle unsaved documents.
 * v 0.2.0
   * Basic support for Python format specifiers.
   * *Insert braces* button.
