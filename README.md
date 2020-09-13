@@ -1,11 +1,5 @@
 # ![](resources/logo/32x32.png) ParametricText
 
-## BETA
-
-*This add-in is still in beta stage and things might change drastically. If you have any ideas or input, now is your chance!*
-
-
-
 ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text Parameters* in sketches.
 
 Text parameters can be pure text or use parameter values by using a special syntax.
@@ -23,7 +17,7 @@ Make sure the directory is named `ParametricText`, with no suffix.
 
 ## Usage
 
-To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select.
+To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select. Also, since Fusion 360™ resets some parameters when a text is modified by an add-in, it is recommended to not position the text in any way until it has been assigned a text parameter.
 
 Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Parameters*.
 
@@ -68,7 +62,7 @@ The special value `_` gives access to global "parameters", such as document vers
   * Workaround is to specify a positive angle. That is, `-90` becomes `360-90 = 270`. It might be hard to change `-180` to `180` without entering another positive value in-between.
 * Any horizontal or vertical flip of the text is removed when assigning texts ([Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/sketchtext-object/m-p/8562981/highlight/true#M7276)).
 * *Compute All* does currently not update the text parameters.
-* `{` and `}` cannot be entered on keyboards where they require *Alt Gr* to be pressed.
+* `{` and `}` cannot be entered in string inputs in Fusion 360™ on keyboards where they require *Alt Gr* to be pressed.
   * Workaround is to use the `{}` button.
 * The mouse pointer must be moved before clicking on the same sketch text again, to select/unselect.
 
@@ -82,6 +76,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
+* v 1.0.0
+  * Out of beta!
 * v 0.2.1
   * Set table height to 10 rows.
   * Fix #1. Handle unsaved documents.
