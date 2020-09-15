@@ -423,7 +423,11 @@ def evaluate_text(text, next_version=False):
 
         if var_name == '_':
             if member == 'version':
-                version = app_.activeDocument.dataFile.versionNumber
+                # No version information available if the document is not saved
+                if app_.activeDocument.isSaved:
+                    version = app_.activeDocument.dataFile.versionNumber
+                else:
+                    version = 0
                 if next_version:
                     version += 1
                 value = version
