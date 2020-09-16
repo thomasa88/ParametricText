@@ -77,7 +77,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 ## Changelog
 
 * v 1.0.1
-  * Fix version number error for unsaved documents
+  * Fix error when using `_.version` in documents that have never been saved.
+  * Redesign logo to comply with app store.
 * v 1.0.0
   * Out of beta!
 * v 0.2.1

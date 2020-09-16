@@ -160,8 +160,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     events_manager_.add_handler(cmd.inputChanged,
                                 callback=map_cmd_input_changed_handler)
 
-    img = thomasa88lib.utils.get_file_dir() + '/resources/logo/16x16.png'
-    about = cmd.commandInputs.addTextBoxCommandInput('about', '', f'<img src="{img}"> <font size="4"><b>{NAME} v{manifest_["version"]}</b></font>', 2, True)
+    about = cmd.commandInputs.addTextBoxCommandInput('about', '', f'<font size="4"><b>{NAME} v{manifest_["version"]}</b></font>', 2, True)
     about.isFullWidth = True
     
     table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '4:1:8')
