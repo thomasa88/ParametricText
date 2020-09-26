@@ -541,7 +541,7 @@ def document_saving_handler(args: adsk.core.DocumentEventArgs):
         for text_id, text_info in texts.items():
             text = text_info.text_value
             
-            if '_.version' in text:
+            if '_.version' or '_.date' in text:
                 for sketch_text in text_info.sketch_texts:
                     sketch_text.text = evaluate_text(text, next_version=True)
 
