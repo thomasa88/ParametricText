@@ -26,6 +26,7 @@
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from collections import defaultdict
+import datetime
 import re
 
 NAME = 'ParametricText'
@@ -430,6 +431,14 @@ def evaluate_text(text, next_version=False):
                 if next_version:
                     version += 1
                 value = version
+            elif member == 'date':
+                # Local time
+                # We don't have to delegate to strftime(), as .format() on datetime handles this!
+                # Format as ISO 8601 date if no options are given
+                if not options_sep:
+                    options_sep = ':'
+                    options = '%Y-%m-%d'
+                value = datetime.datetime.now()
             else:
                 return f'<Unknown member of {var_name}: {member}>'
         else:
