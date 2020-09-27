@@ -2,7 +2,7 @@
 
 ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text Parameters* in sketches.
 
-Text parameters can be pure text or use parameter values by using a special syntax.
+Text parameters can be pure text or use parameter values by using a special syntax. There is also a special parameter, that contains information about the document's version and save date.
 
 All parameters are stored within in the document upon save. The texts are always "rendered" in the sketches, so they can be viewed without having the add-in. However, to correctly update the values, the add-in is needed.
 
@@ -35,26 +35,50 @@ The add-in can be temporarily disabled using the *Scripts and Add-ins* dialog. P
 
 ParametricText has basic support for including parameter values using [Python Format Specifiers](https://docs.python.org/3/library/string.html#formatspec). By writing `{parameter}`, the text is substituted by the parameter value. E.g., if the parameter *d10* has the value 20, `{d10}` becomes `20.0`.
 
-The special value `_` gives access to global "parameters", such as document version.
+The special parameter `_` gives access to special values, such as document version.
+
+`_.date` supports [Python strftime()](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) formatting. E.g., `{_.date:%Y}` will show the year that the document was saved.
+
+### Available Parameter Expressions
+
+The following table shows the parameter values that can be used in ParametricText. *parameter* represents any numerical parameter defined in Fusion 360™, such as `d39` or `length`.
 
 | Field Value (within `{}`)              | Description                                  | Example Result     |
 | -------------------------------------- | -------------------------------------------- | ------------------ |
 | `_.version`                            | Document version                             | `24`               |
+| `_.date`                               | Document save date                           | `2020-09-27`       |
 | *`parameter`* or *`parameter`*`.value` | Parameter value                              | `10.0`             |
 | *`parameter`*`.comment`                | Parameter comment                            | `Width of the rod` |
 | *`parameter`*`.expr`                   | Parameter expression, as entered by the user | `5 mm + 10 mm`     |
 | *`parameter`*`.unit`                   | Parameter unit                               | `mm`               |
 
-## Examples
+### Parameter Usage Examples
+
+The following table shows examples on how to access values and format parameters.
 
 | Value                | Result                                            |
 | -------------------- | ------------------------------------------------- |
-| `v{_.version:03}`    | `v005` (Integer zero-padded to three digits)      |
 | `{d1:.3f} {d1.unit}` | `15.000 mm` (3 decimal places)                    |
 | `{d1:03.0f}`         | `015` (Float/decimal zero-padded to three digits) |
 | `{width:.0f}`        | `6` (No decimal places)                           |
 | `{width.expr}`       | `6 mm`                                            |
 | `{height.expr}`      | `2 mm + width`                                    |
+
+### Special Parameter Usage Examples
+
+The following table shows examples of using the special parameter `_`.
+
+| Value               | Result                                                       |
+| ------------------- | ------------------------------------------------------------ |
+| `{_.version}`       | `5`                                                          |
+| `v{_.version:03}`   | `v005` (Integer zero-padded to three digits)                 |
+| `{_.date}`          | `2020-09-27` (Current date, in ISO 8601 format)              |
+| `{_.date:%m/%d/%Y}` | `09/27/2020` (Month, day, year)                              |
+| `{_.date:%U}`       | `40` (Current week, that starts on a Sunday)                 |
+| `W{_.date:%W}`      | `39` (Current week, that starts on a Monday, prefixed with "W") |
+| `{_.date:%H:%M}`    | `14:58`<sup>1</sup> (Hour, second)                           |
+
+<sup>1</sup> Note: The time of day is "unstable". The time of day will be set a few seconds before the save time, when saving, and on the next change of text parameters, the time will jump to the correct save time.
 
 ## Known Limitations
 
@@ -76,6 +100,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
+* v 1.1.0
+  * `_.date` for retrieving document save date.
 * v 1.0.1
   * Fix error when using `_.version` in documents that have never been saved.
   * Redesign logo to comply with app store.
