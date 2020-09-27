@@ -432,13 +432,33 @@ def evaluate_text(text, next_version=False):
                     version += 1
                 value = version
             elif member == 'date':
-                # Local time
+                # This will provide the date and time using the local timezone
                 # We don't have to delegate to strftime(), as .format() on datetime handles this!
+
                 # Format as ISO 8601 date if no options are given
                 if not options_sep:
                     options_sep = ':'
                     options = '%Y-%m-%d'
-                value = datetime.datetime.now()
+
+                if next_version:
+                    # The user is saving, grab the current time. It will probably be a few
+                    # seconds before the actual save time, but that should be good enough.
+                    # Note: We must do this update before the save happens, to get a correct
+                    # value in the save and to avoid making the document modified after the
+                    # save.
+                    save_time = datetime.datetime.now(tz=datetime.timezone.utc)
+                elif app_.activeDocument.isSaved:
+                    unix_time_utc = app_.activeDocument.dataFile.dateCreated
+                    save_time = datetime.datetime.fromtimestamp(unix_time_utc,
+                                                                tz=datetime.timezone.utc)
+                else:
+                    # Set a fake time until the document is saved for the first time
+                    # Doing this in the user's timezone, to get midnight time correct.
+                    now = datetime.datetime.now(tz=None)
+                    save_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+                save_time_local = save_time.astimezone()
+                value = save_time_local
             else:
                 return f'<Unknown member of {var_name}: {member}>'
         else:
