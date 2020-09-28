@@ -376,7 +376,7 @@ def save(cmd):
     
         for sketch_text in selections:
             sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
-            sketch_text.text = evaluate_text(text)
+            set_sketch_text(sketch_text, evaluate_text(text))
 
     for text_id in removed_texts_:
         remove_attributes(text_id)
@@ -411,6 +411,33 @@ def remove_attributes(text_id):
     custom_value = design.attributes.itemByName('thomasa88_ParametricText', f'customTextValue_{text_id}')
     if custom_value:
         custom_value.deleteMe()
+
+def set_sketch_text(sketch_text, text):
+    try:
+        sketch_text.text = text
+    except RuntimeError as e:
+        msg = None
+        if len(e.args) > 0:
+            msg = e.args[0]
+        # Must be able to handle both errors. Angle error seems to come first,
+        # so we will not reach the font error in that case.
+        if msg == '3 : invalid input font name':
+            # SHX font bug. Cannot set text when a SHX font is used. Switch to a TrueType font temporarily.
+            # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551
+            old_font = sketch_text.fontName + '.shx'
+            # Let's hope the user has Arial
+            sketch_text.fontName = 'Arial'
+            sketch_text.text = evaluate_text(text)
+            sketch_text.fontName = old_font
+        elif msg == '3 : invalid input angle':
+            # Negative angle bug. Cannot set text when the angle is negative.
+            # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-unable-to-modify-text-of-a-sketchtext-created-manually-with/m-p/9502107
+            ui_.messageBox(f'Cannot set text parameter in the sketch "{sketch_text.parentSketch.name}" '
+                            'due to the text having a negative angle.\n\n'
+                            'Please edit the text to have a positive angle (add 360 degrees to the current angle).\n\n'
+                            'See add-in help document/README for more information.',
+                            f'{NAME} v {manifest_["version"]}')
+            # Unhook the text from the text parameter?
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 def evaluate_text(text, next_version=False):
@@ -564,18 +591,18 @@ def document_saving_handler(args: adsk.core.DocumentEventArgs):
             
             if '_.version' or '_.date' in text:
                 for sketch_text in text_info.sketch_texts:
-                    sketch_text.text = evaluate_text(text, next_version=True)
+                    set_sketch_text(sketch_text, evaluate_text(text, next_version=True))
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     if args.commandId == 'ChangeParameterCommand': # args.commandTerminationReason
         # User (might have) changed a parameter
         texts = get_texts()
         for text_id, text_info in texts.items():
-            new_text = evaluate_text(text_info.text_value)
+            evaluated_text = evaluate_text(text_info.text_value)
             
-            if text_info.sketch_texts and text_info.sketch_texts[0].text != new_text:
+            if text_info.sketch_texts and text_info.sketch_texts[0].text != evaluated_text:
                 for sketch_text in text_info.sketch_texts:
-                    sketch_text.text = evaluate_text(new_text)
+                    set_sketch_text(sketch_text, evaluated_text)
     ### TODO: Update when user selects "Compute All"
     #elif args.commandId == 'FusionComputeAllCommand':
     #    load()
