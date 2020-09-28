@@ -102,6 +102,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 * v 1.1.0
   * `_.date` for retrieving document save date.
+  * Workaround for [Fusion 360™ bug]() when using Autodesk® SHX fonts.
+  * Informative error when a text has a negative angle.
 * v 1.0.1
   * Fix error when using `_.version` in documents that have never been saved.
   * Redesign logo to comply with app store.
