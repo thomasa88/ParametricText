@@ -69,9 +69,10 @@ QUICK_REF_LINES = QUICK_REF.count('<br>') + 1
 app_ = None
 ui_ = None
 
-error_catcher_ = thomasa88lib.error.ErrorCatcher(msgbox_in_debug=False)
-events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
 manifest_ = thomasa88lib.manifest.read()
+error_catcher_ = thomasa88lib.error.ErrorCatcher(msgbox_in_debug=False,
+                                                 msg_prefix=f'{NAME} v {manifest_["version"]}')
+events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
 
 # Contains selections for the currently active dialog
 # This dict must be reset every time the dialog is opened,
