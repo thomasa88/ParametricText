@@ -17,6 +17,8 @@ Make sure the directory is named `ParametricText`, with no suffix.
 
 ## Usage
 
+[Demo video](https://knowledge.autodesk.com/support/fusion-360/learn-explore/caas/screencast/Main/Details/3d4a64a7-37b3-4551-83c4-a93a4d96bca7.html)
+
 To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select. Also, since Fusion 360™ resets some parameters when a text is modified by an add-in, it is recommended to not position the text in any way until it has been assigned a text parameter.
 
 Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Parameters*.
@@ -90,6 +92,12 @@ The following table shows examples of using the special parameter `_`.
   * Workaround is to use the `{}` button.
 * The mouse pointer must be moved before clicking on the same sketch text again, to select/unselect.
 
+## Reporting Issues
+
+Please report any issues that you find in the add-in on the [Issues](https://github.com/thomasa88/ParametricText/issues) page.
+
+For better support, please include the steps you performed and the result. Also include copies of any error messages.
+
 ## Author
 
 This add-in is created by Thomas Axelsson.
@@ -97,6 +105,12 @@ This add-in is created by Thomas Axelsson.
 ## License
 
 This project is licensed under the terms of the MIT license. See [LICENSE](LICENSE).
+
+## More Fusion 360™ Add-ins
+
+[My Fusion 360™ app store page](https://apps.autodesk.com/en/Publisher/PublisherHomepage?ID=JLH9M8296BET)
+
+[All my add-ins on Github](https://github.com/topics/fusion-360?q=user%3Athomasa88)
 
 ## Changelog
 
