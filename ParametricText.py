@@ -491,6 +491,7 @@ def evaluate_text(text, sketch_text, next_version=False):
                 ### Must update on rename
                 ### Must evaluate all texts separately to handle this, when updating texts - will this be needed when we don't handle "Compute All"?
                 ### What about copying component to a new component (Paste New)?
+                ### Must handle rename Undo
                 # RootComponent turns into the name of the document including version number
                 value = sketch_text.parentSketch.parentComponent.name
             elif member == 'sketch':
@@ -586,6 +587,7 @@ def get_texts():
 
         # Get all sketch texts belonging to the attribute
         has_attrs = design.findAttributes('thomasa88_ParametricText', f're:hasParametricText_{text_id}')
+        print("FOUND: ", list(has_attrs))
         for has_attr in has_attrs:
             sketch_texts = text_info.sketch_texts
             if has_attr.parent:
@@ -600,26 +602,39 @@ def document_saving_handler(args: adsk.core.DocumentEventArgs):
     if ui_.activeWorkspace.id == 'FusionSolidEnvironment':
         texts = get_texts()
         for text_id, text_info in texts.items():
-            text = text_info.text_value
-            
             if '_.version' or '_.date' in text:
                 for sketch_text in text_info.sketch_texts:
-                    set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version=True))
+                    set_sketch_text(sketch_text, evaluate_text(text_info.text_value,
+                                                               sketch_text,
+                                                               next_version=True))
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     print(f"{NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
-    if (args.commandId in ['ChangeParameterCommand', 'RenameCommand', 'FusionRenameTimelineEntryCommand'] and
+    if (args.commandId in ['ChangeParameterCommand',
+                           'FusionPasteNewCommand',
+                           #'PasteCommand',
+                           'RenameCommand',
+                           'FusionRenameTimelineEntryCommand'] and
         args.terminationReason == adsk.core.CommandTerminationReason.CompletedTerminationReason):
         # User (might have) changed a parameter
-        texts = get_texts()
-        for text_id, text_info in texts.items():
-            #evaluated_text = evaluate_text(text_info.text_value)
-            
-            #if text_info.sketch_texts and text_info.sketch_texts[0].text != evaluated_text:
-            for sketch_text in text_info.sketch_texts:
-                # Must evaluate for every sketch, in case the user has used the component name parameter
-                set_sketch_text(sketch_text, evaluate_text(text_info.text_value, sketch_text))
+
+        # Taking action directly disturbs the Paste New command.
+        # Let's run at the end of the event queue.
+        events_manager_.delay(update_texts)
+
     ### TODO: Update when user selects "Compute All"
     #elif args.commandId == 'FusionComputeAllCommand':
     #    load()
     #    save()
+
+def update_texts():
+    print("UPDATE TEXTS")
+    ########################################## WHY is testattr copied with Paste New, but hasParametricText is not??
+    texts = get_texts()
+    for text_id, text_info in texts.items():
+        #evaluated_text = evaluate_text(text_info.text_value)
+        
+        #if text_info.sketch_texts and text_info.sketch_texts[0].text != evaluated_text:
+        for sketch_text in text_info.sketch_texts:
+            # Must evaluate for every sketch, in case the user has used the component name parameter
+            set_sketch_text(sketch_text, evaluate_text(text_info.text_value, sketch_text))
