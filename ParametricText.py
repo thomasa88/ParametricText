@@ -376,7 +376,7 @@ def save(cmd):
     
         for sketch_text in selections:
             sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
-            set_sketch_text(sketch_text, evaluate_text(text))
+            set_sketch_text(sketch_text, evaluate_text(text, sketch_text))
 
     for text_id in removed_texts_:
         remove_attributes(text_id)
@@ -427,7 +427,7 @@ def set_sketch_text(sketch_text, text):
             old_font = sketch_text.fontName + '.shx'
             # Let's hope the user has Arial
             sketch_text.fontName = 'Arial'
-            sketch_text.text = evaluate_text(text)
+            sketch_text.text = evaluate_text(text, sketch_text)
             sketch_text.fontName = old_font
         elif msg == '3 : invalid input angle':
             # Negative angle bug. Cannot set text when the angle is negative.
@@ -440,7 +440,7 @@ def set_sketch_text(sketch_text, text):
             # Unhook the text from the text parameter?
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
-def evaluate_text(text, next_version=False):
+def evaluate_text(text, sketch_text, next_version=False):
     design: adsk.fusion.Design = app_.activeProduct
     def sub_func(subst_match):
         # https://www.python.org/dev/peps/pep-3101/
@@ -487,6 +487,15 @@ def evaluate_text(text, next_version=False):
 
                 save_time_local = save_time.astimezone()
                 value = save_time_local
+            elif member == 'component':
+                ### Must update on rename
+                ### Must evaluate all texts separately to handle this, when updating texts - will this be needed when we don't handle "Compute All"?
+                ### What about copying component to a new component (Paste New)?
+                # RootComponent turns into the name of the document including version number
+                value = sketch_text.parentSketch.parentComponent.name
+            elif member == 'sketch':
+                ### Is this useful? Let's users edit the texts directly in the Browser or Timeline, I guess.
+                value = sketch_text.parentSketch.name
             else:
                 return f'<Unknown member of {var_name}: {member}>'
         else:
@@ -595,18 +604,21 @@ def document_saving_handler(args: adsk.core.DocumentEventArgs):
             
             if '_.version' or '_.date' in text:
                 for sketch_text in text_info.sketch_texts:
-                    set_sketch_text(sketch_text, evaluate_text(text, next_version=True))
+                    set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version=True))
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
-    if args.commandId == 'ChangeParameterCommand': # args.commandTerminationReason
+    print(f"{NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
+    if (args.commandId in ['ChangeParameterCommand', 'RenameCommand', 'FusionRenameTimelineEntryCommand'] and
+        args.terminationReason == adsk.core.CommandTerminationReason.CompletedTerminationReason):
         # User (might have) changed a parameter
         texts = get_texts()
         for text_id, text_info in texts.items():
-            evaluated_text = evaluate_text(text_info.text_value)
+            #evaluated_text = evaluate_text(text_info.text_value)
             
-            if text_info.sketch_texts and text_info.sketch_texts[0].text != evaluated_text:
-                for sketch_text in text_info.sketch_texts:
-                    set_sketch_text(sketch_text, evaluated_text)
+            #if text_info.sketch_texts and text_info.sketch_texts[0].text != evaluated_text:
+            for sketch_text in text_info.sketch_texts:
+                # Must evaluate for every sketch, in case the user has used the component name parameter
+                set_sketch_text(sketch_text, evaluate_text(text_info.text_value, sketch_text))
     ### TODO: Update when user selects "Compute All"
     #elif args.commandId == 'FusionComputeAllCommand':
     #    load()
