@@ -598,7 +598,8 @@ def document_saving_handler(args: adsk.core.DocumentEventArgs):
                     set_sketch_text(sketch_text, evaluate_text(text, next_version=True))
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
-    if args.commandId == 'ChangeParameterCommand': # args.commandTerminationReason
+    if (args.commandId == 'ChangeParameterCommand' and
+        args.terminationReason == adsk.core.CommandTerminationReason.CompletedTerminationReason):
         # User (might have) changed a parameter
         texts = get_texts()
         for text_id, text_info in texts.items():
