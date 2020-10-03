@@ -496,7 +496,11 @@ def evaluate_text(text, next_version=False):
 
             if member == 'value' or member == '':
                 # Make sure that the value is in the unit that the user has given
-                value = design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit)
+                if param.unit == '':
+                    # Unit-less
+                    value = param.value
+                else:
+                    value = design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit)
             elif member == 'comment':
                 value = param.comment
             elif member == 'expr':
