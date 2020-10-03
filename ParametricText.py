@@ -375,8 +375,31 @@ def save(cmd):
         design.attributes.add('thomasa88_ParametricText', f'customTextValue_{text_id}', text)
     
         for sketch_text in selections:
-            sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
-            set_sketch_text(sketch_text, evaluate_text(text, sketch_text))
+            #### Test this on top-level sketches!
+            sketch = sketch_text.parentSketch
+            in_occurrences = design.rootComponent.allOccurrencesByComponent(sketch.parentComponent)
+            # we want the native sketch text! Can we use entityToken to escape the occurence nesting?
+            
+            # how to know the index!? go by contents or other properties..???
+            native_sketch_texts = sketch.nativeObject.sketchTexts
+####### Need to migrate old documents to the new style. Also, they cannot be sent back to someone with the old style...
+####### Have a confirmation? Or a warning that if they save, it will not be compatible. Save a "format version" in an attribute.
+            #to get all proxies for selection: proxy = entity.createForAssemblyContext(occurrence)
+            for n in native_sketch_texts:
+                print("searching ", n)
+                if n.position.isEqualTo(sketch_text.position):
+                    print("found native")
+                    n.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
+                    set_sketch_text(n, evaluate_text(text, n))
+            
+            #sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
+            
+            # entityToken just gives us the proxy back
+            #token = sketch_text.entityToken
+            #ent = design.findEntityByToken(token)[0]
+            #ent.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
+            #set_sketch_text(sketch_text, evaluate_text(text, sketch_text))
+        #design.allComponents.itemByName('Component1').sketches[0].sketchTexts[0].attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
 
     for text_id in removed_texts_:
         remove_attributes(text_id)
@@ -586,8 +609,8 @@ def get_texts():
         text_info.text_value = value_attr.value
 
         # Get all sketch texts belonging to the attribute
-        has_attrs = design.findAttributes('thomasa88_ParametricText', f're:hasParametricText_{text_id}')
-        print("FOUND: ", list(has_attrs))
+        has_attrs = design.findAttributes('thomasa88_ParametricText', f'hasParametricText_{text_id}')
+        print(f"FOUND for {text_id}: ", list(has_attrs))
         for has_attr in has_attrs:
             sketch_texts = text_info.sketch_texts
             if has_attr.parent:
