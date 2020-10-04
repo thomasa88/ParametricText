@@ -51,14 +51,16 @@ The special parameter `_` gives access to special values, such as document versi
 
 The following table shows the parameter values that can be used in ParametricText. *parameter* represents any numerical parameter defined in Fusion 360™, such as `d39` or `length`.
 
-| Field Value (within `{}`)              | Description                                  | Example Result     |
-| -------------------------------------- | -------------------------------------------- | ------------------ |
-| `_.version`                            | Document version                             | `24`               |
-| `_.date`                               | Document save date                           | `2020-09-27`       |
-| *`parameter`* or *`parameter`*`.value` | Parameter value                              | `10.0`             |
-| *`parameter`*`.comment`                | Parameter comment                            | `Width of the rod` |
-| *`parameter`*`.expr`                   | Parameter expression, as entered by the user | `5 mm + 10 mm`     |
-| *`parameter`*`.unit`                   | Parameter unit                               | `mm`               |
+| Field Value (within `{}`)              | Description                                       | Example Result     |
+| -------------------------------------- | ------------------------------------------------- | ------------------ |
+| `_.version`                            | Document version                                  | `24`               |
+| `_.file`                               | Document filename                                 | `Crank`            |
+| `_.component`                          | Name of the component which the Sketch belongs to | `Handle`           |
+| `_.date`                               | Document save date                                | `2020-09-27`       |
+| *`parameter`* or *`parameter`*`.value` | Parameter value                                   | `10.0`             |
+| *`parameter`*`.comment`                | Parameter comment                                 | `Width of the rod` |
+| *`parameter`*`.expr`                   | Parameter expression, as entered by the user      | `5 mm + 10 mm`     |
+| *`parameter`*`.unit`                   | Parameter unit                                    | `mm`               |
 
 ### Parameter Usage Examples
 
@@ -76,15 +78,18 @@ The following table shows examples on how to access values and format parameters
 
 The following table shows examples of using the special parameter `_`.
 
-| Value               | Result                                                       |
-| ------------------- | ------------------------------------------------------------ |
-| `{_.version}`       | `5`                                                          |
-| `v{_.version:03}`   | `v005` (Integer zero-padded to three digits)                 |
-| `{_.date}`          | `2020-09-27` (Current date, in ISO 8601 format)              |
-| `{_.date:%m/%d/%Y}` | `09/27/2020` (Month, day, year)                              |
-| `{_.date:%U}`       | `40` (Current week, that starts on a Sunday)                 |
-| `W{_.date:%W}`      | `39` (Current week, that starts on a Monday, prefixed with "W") |
-| `{_.date:%H:%M}`    | `14:58`<sup>1</sup> (Hour, second)                           |
+| Value                   | Result                                                       |
+| ----------------------- | ------------------------------------------------------------ |
+| `{_.version}`           | `5`                                                          |
+| `v{_.version:03}`       | `v005` (Integer zero-padded to three digits)                 |
+| `{_.file}`              | `Crank`                                                      |
+| `{_.file} v{_.version}` | `Crank v5`                                                   |
+| `_.component`           | `Handle`                                                     |
+| `{_.date}`              | `2020-09-27` (Current date, in ISO 8601 format)              |
+| `{_.date:%m/%d/%Y}`     | `09/27/2020` (Month, day, year)                              |
+| `{_.date:%U}`           | `40` (Current week, that starts on a Sunday)                 |
+| `W{_.date:%W}`          | `39` (Current week, that starts on a Monday, prefixed with "W") |
+| `{_.date:%H:%M}`        | `14:58`<sup>1</sup> (Hour, second)                           |
 
 <sup>1</sup> Note: The time of day is "unstable". The time of day will be set a few seconds before the save time, when saving, and on the next change of text parameters, the time will jump to the correct save time.
 
@@ -97,6 +102,8 @@ The following table shows examples of using the special parameter `_`.
 * `{` and `}` cannot be entered in string inputs in Fusion 360™ on keyboards where they require *Alt Gr* to be pressed.
   * Workaround is to use the `{}` button.
 * The mouse pointer must be moved before clicking on the same sketch text again, to select/unselect.
+* `_.file` does not update on file rename/copy.
+  * Workaround is to open the *Change Text Parameters* and click *OK* in the new document.
 
 ## Reporting Issues
 
@@ -124,6 +131,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
   * Rewritten selection engine.
     * Handle selection of texts in multi-occurrence components better.
     * "Inherit" sketch parameters when pasting using *Paste New*.
+  * New parameter values: `_.component`, `_.file`
 * v 1.1.0
   * `_.date` for retrieving document save date.
   * Workaround for [Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551) when using Autodesk® SHX fonts.
