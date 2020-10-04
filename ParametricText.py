@@ -226,8 +226,8 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         row = table_input.selectedRow
         if row != -1:
             text_id = get_text_id(table_input.getInputAtPosition(row, 0))
-            custom_input = table_input.commandInputs.itemById(f'value_{text_id}')
-            custom_input.value += '{}'
+            value_input = table_input.commandInputs.itemById(f'value_{text_id}')
+            value_input.value += '{}'
     elif args.input.id.startswith('value_'):
         need_update_select = True
     elif args.input.id.startswith('sketchtexts_'):
@@ -302,7 +302,7 @@ def get_text_id(input_or_str):
         input_or_str = input_or_str.id
     return input_or_str.split('_')[-1]
 
-def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None):
+def add_row(table_input, text_id, new_row=True, text=None):
     global dialog_selection_map_
     global last_selected_row_
     design: adsk.fusion.Design = app_.activeProduct
@@ -320,15 +320,13 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
                                                                         False, './resources/clear_selection', True)
     clear_selection_input.tooltip = 'Clear selection'    
     
-    if text_type == 'custom':
-        custom_input_text = custom_text
-    else:
-        custom_input_text = ''
-    custom_input = table_input.commandInputs.addStringValueInput(f'value_{text_id}', '', custom_input_text)
+    if not text:
+        text = ''
+    value_input = table_input.commandInputs.addStringValueInput(f'value_{text_id}', '', text)
 
     table_input.addCommandInput(selected_input, row_index, 0)
     table_input.addCommandInput(clear_selection_input, row_index, 1)
-    table_input.addCommandInput(custom_input, row_index, 2)
+    table_input.addCommandInput(value_input, row_index, 2)
     
     if new_row:
         table_input.selectedRow = row_index
@@ -371,11 +369,10 @@ def save(cmd):
 
         remove_attributes(text_id)
 
-        design.attributes.add('thomasa88_ParametricText', f'customTextType_{text_id}', 'custom')
-        design.attributes.add('thomasa88_ParametricText', f'customTextValue_{text_id}', text)
+        design.attributes.add('thomasa88_ParametricText', f'textValue_{text_id}', text)
     
         for sketch_text in selections:
-            sketch_text.attributes.add('thomasa88_ParametricText', f'hasParametricText_{text_id}', '')
+            sketch_text.attributes.add('thomasa88_ParametricText', f'hasText_{text_id}', '')
             set_sketch_text(sketch_text, evaluate_text(text))
 
     for text_id in removed_texts_:
@@ -400,17 +397,13 @@ def save_next_id():
 def remove_attributes(text_id):
     design = app_.activeProduct
 
-    old_attrs = design.findAttributes('thomasa88_ParametricText', f'hasParametricText_{text_id}')
+    old_attrs = design.findAttributes('thomasa88_ParametricText', f'hasText_{text_id}')
     for old_attr in old_attrs:
         old_attr.deleteMe()
-    
-    custom_type = design.attributes.itemByName('thomasa88_ParametricText', f'customTextType_{text_id}')
-    if custom_type:
-        custom_type.deleteMe()
 
-    custom_value = design.attributes.itemByName('thomasa88_ParametricText', f'customTextValue_{text_id}')
-    if custom_value:
-        custom_value.deleteMe()
+    value_attr = design.attributes.itemByName('thomasa88_ParametricText', f'textValue_{text_id}')
+    if value_attr:
+        value_attr.deleteMe()
 
 def set_sketch_text(sketch_text, text):
     try:
@@ -531,8 +524,7 @@ def load(cmd):
     for text_id, text_info in texts.items():
         dialog_selection_map_[text_id] = text_info.sketch_texts
         add_row(table_input, text_id, new_row=False,
-                    text_type=text_info.text_type,
-                    custom_text=text_info.text_value)
+                text=text_info.text_value)
 
 def load_next_id():
     global dialog_next_id_
@@ -554,7 +546,6 @@ def load_next_id():
 class TextInfo:
     def __init__(self):
         self.sketch_texts = []
-        self.text_type = None
         self.text_value = None
 
 def get_texts():
@@ -562,21 +553,17 @@ def get_texts():
 
     texts = defaultdict(TextInfo)
 
-    type_attrs = [attr for attr in design.attributes.itemsByGroup('thomasa88_ParametricText')
-                  if attr.name.startswith('customTextType_')]    
-    for type_attr in type_attrs:
-        if not type_attr:
-            continue
-        text_id = get_text_id(type_attr.name)
-        value_attr = design.attributes.itemByName('thomasa88_ParametricText', f'customTextValue_{text_id}')
+    value_attrs = [attr for attr in design.attributes.itemsByGroup('thomasa88_ParametricText')
+                  if attr.name.startswith('textValue_')]
+    for value_attr in value_attrs:
         if not value_attr:
             continue
+        text_id = get_text_id(value_attr.name)
         text_info = texts[text_id]
-        text_info.text_type = type_attr.value
         text_info.text_value = value_attr.value
 
         # Get all sketch texts belonging to the attribute
-        has_attrs = design.findAttributes('thomasa88_ParametricText', f're:hasParametricText_{text_id}')
+        has_attrs = design.findAttributes('thomasa88_ParametricText', f'hasText_{text_id}')
         for has_attr in has_attrs:
             sketch_texts = text_info.sketch_texts
             if has_attr.parent:
