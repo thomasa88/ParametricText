@@ -170,13 +170,13 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     table_input.maximumVisibleRows = 10
     table_input.minimumVisibleRows = 10
 
-    table_add = table_input.commandInputs.addBoolValueInput('add_row', '+', False, './resources/add', True)
+    table_add = table_input.commandInputs.addBoolValueInput('add_row_btn', '+', False, './resources/add', True)
     table_add.tooltip = 'Add a new row'
-    table_remove = table_input.commandInputs.addBoolValueInput('remove_row', '-', False, './resources/remove', True)
+    table_remove = table_input.commandInputs.addBoolValueInput('remove_row_btn', '-', False, './resources/remove', True)
     table_remove.tooltip = 'Remove selected row'
     table_button_spacer = table_input.commandInputs.addBoolValueInput('spacer', '  ', False, '', True)
     table_button_spacer.isEnabled = False
-    insert_braces = table_input.commandInputs.addBoolValueInput('insert_braces', '{}', False, './resources/braces', True)
+    insert_braces = table_input.commandInputs.addBoolValueInput('insert_braces_btn', '{}', False, './resources/braces', True)
     insert_braces.tooltip = 'Insert curly braces'
     insert_braces.tooltipDescription = ('Inserts curly braces at the end of the text box of the currently selected row.\n\n'
                                         'This button allows insertion of curly braces when Fusion 360™ '
@@ -216,24 +216,24 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
     need_update_select = False
     update_select_force = False
     text_id = get_text_id(args.input)
-    if args.input.id == 'add_row':
+    if args.input.id == 'add_row_btn':
         add_row(table_input, get_next_id())
-    elif args.input.id == 'remove_row':
+    elif args.input.id == 'remove_row_btn':
         row = table_input.selectedRow
         if row != -1:
             remove_row(table_input, row)
-    elif args.input.id == 'insert_braces':
+    elif args.input.id == 'insert_braces_btn':
         row = table_input.selectedRow
         if row != -1:
             text_id = get_text_id(table_input.getInputAtPosition(row, 0))
-            custom_input = table_input.commandInputs.itemById(f'custom_{text_id}')
+            custom_input = table_input.commandInputs.itemById(f'value_{text_id}')
             custom_input.value += '{}'
-    elif args.input.id.startswith('custom_'):
+    elif args.input.id.startswith('value_'):
         need_update_select = True
-    elif args.input.id.startswith('selected_'):
+    elif args.input.id.startswith('sketchtexts_'):
         need_update_select = True
-    elif args.input.id.startswith('clear_'):
-        selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
+    elif args.input.id.startswith('clear_btn_'):
+        selected_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
         selections = dialog_selection_map_[text_id]
         selections.clear()
         set_selected_text(selected_input, selections)
@@ -245,7 +245,7 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         if not addin_updating_select_:
             if row != -1:
                 text_id = get_text_id(table_input.getInputAtPosition(row, 0))
-                selected_input = table_input.commandInputs.itemById(f'selected_{text_id}')
+                selected_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
                 
                 selections = dialog_selection_map_[text_id]
                 selections.clear()
@@ -312,11 +312,11 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
     row_index = table_input.rowCount
 
     # Using StringValueInput + isReadOnly to allow the user to still select the row
-    selected_input = table_input.commandInputs.addStringValueInput(f'selected_{text_id}', '', '')
+    selected_input = table_input.commandInputs.addStringValueInput(f'sketchtexts_{text_id}', '', '')
     selected_input.isReadOnly = True
     set_selected_text(selected_input, selections)
 
-    clear_selection_input = table_input.commandInputs.addBoolValueInput(f'clear_{text_id}', 'X',
+    clear_selection_input = table_input.commandInputs.addBoolValueInput(f'clear_btn_{text_id}', 'X',
                                                                         False, './resources/clear_selection', True)
     clear_selection_input.tooltip = 'Clear selection'    
     
@@ -324,7 +324,7 @@ def add_row(table_input, text_id, new_row=True, text_type=None, custom_text=None
         custom_input_text = custom_text
     else:
         custom_input_text = ''
-    custom_input = table_input.commandInputs.addStringValueInput(f'custom_{text_id}', '', custom_input_text)
+    custom_input = table_input.commandInputs.addStringValueInput(f'value_{text_id}', '', custom_input_text)
 
     table_input.addCommandInput(selected_input, row_index, 0)
     table_input.addCommandInput(clear_selection_input, row_index, 1)
@@ -367,7 +367,7 @@ def save(cmd):
     for row_index in range(table_input.rowCount):
         text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
         selections = dialog_selection_map_[text_id]
-        text = table_input.commandInputs.itemById(f'custom_{text_id}').value
+        text = table_input.commandInputs.itemById(f'value_{text_id}').value
 
         remove_attributes(text_id)
 
