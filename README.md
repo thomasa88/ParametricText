@@ -120,6 +120,10 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
+* v 2.0.0
+  * Rewritten selection engine.
+    * Handle selection of texts in multi-occurrence components better.
+    * "Inherit" sketch parameters when pasting using *Paste New*.
 * v 1.1.0
   * `_.date` for retrieving document save date.
   * Workaround for [Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551) when using Autodesk® SHX fonts.

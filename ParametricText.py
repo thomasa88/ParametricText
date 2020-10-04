@@ -66,6 +66,18 @@ QUICK_REF = '''<b>Quick Reference</b><br>
 '''
 QUICK_REF_LINES = QUICK_REF.count('<br>') + 1
 
+class SelectAction:
+    Select = 1
+    Unselect = 2
+
+class DialogState:
+    def __init__(self):
+        self.last_selected_row = None
+        self.addin_updating_select = False
+        self.removed_texts = []
+        # Keep a list of unselects, to handle user unselecting multiple at once (window selection)
+        self.pending_unselects = []
+
 app_ = None
 ui_ = None
 
@@ -74,9 +86,10 @@ error_catcher_ = thomasa88lib.error.ErrorCatcher(msgbox_in_debug=False,
                                                  msg_prefix=f'{NAME} v {manifest_["version"]}')
 events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
 
-# Contains selections for the currently active dialog
+# Contains selections for all rows of the currently active dialog
 # This dict must be reset every time the dialog is opened,
 # as the user might have cancelled it the last time.
+# The list for each row cannot be a set(), as SketchText is not hashable.
 dialog_selection_map_ = defaultdict(list)
 
 # It seems that attributes are not saved until the command is executed,
@@ -86,9 +99,7 @@ dialog_selection_map_ = defaultdict(list)
 # so just keep one global ID.
 dialog_next_id_ = None
 
-last_selected_row_ = None
-addin_updating_select_ = False
-removed_texts_ = []
+dialog_state_ = None
 
 def run(context):
     global app_
@@ -162,6 +173,13 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     events_manager_.add_handler(cmd.inputChanged,
                                 callback=map_cmd_input_changed_handler)
 
+    events_manager_.add_handler(cmd.preSelect,
+                                callback=map_cmd_pre_select_handler)
+    events_manager_.add_handler(cmd.select,
+                                callback=map_cmd_select_handler)
+    events_manager_.add_handler(cmd.unselect,
+                                callback=map_cmd_unselect_handler)
+
     about = cmd.commandInputs.addTextBoxCommandInput('about', '', f'<font size="4"><b>{NAME} v{manifest_["version"]}</b></font>', 2, True)
     about.isFullWidth = True
     
@@ -187,6 +205,7 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     table_input.addToolbarCommandInput(table_button_spacer)
     table_input.addToolbarCommandInput(insert_braces)
     
+    # The select events cannot work without having an active SelectionCommandInput
     select_input = cmd.commandInputs.addSelectionInput('select', 'Sketch Texts', '')
     select_input.addSelectionFilter(adsk.core.SelectionCommandInput.Texts)
     select_input.setSelectionLimits(0, 0)
@@ -196,10 +215,8 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     quick_ref.isFullWidth = True
 
     # Reset dialog state
-    global removed_texts_
-    removed_texts_.clear()
-    global last_selected_row_
-    last_selected_row_ = None
+    global dialog_state_
+    dialog_state_ = DialogState()
 
     load(cmd)
 
@@ -213,7 +230,7 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
     design: adsk.fusion.Design = app_.activeProduct
     table_input: adsk.core.TableCommandInput = args.inputs.itemById('table')
     select_input = args.inputs.itemById('select')
-    need_update_select = False
+    need_update_select_input = False
     update_select_force = False
     text_id = get_text_id(args.input)
     if args.input.id == 'add_row_btn':
@@ -229,73 +246,155 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
             value_input = table_input.commandInputs.itemById(f'value_{text_id}')
             value_input.value += '{}'
     elif args.input.id.startswith('value_'):
-        need_update_select = True
+        need_update_select_input = True
     elif args.input.id.startswith('sketchtexts_'):
-        need_update_select = True
+        need_update_select_input = True
     elif args.input.id.startswith('clear_btn_'):
-        selected_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
-        selections = dialog_selection_map_[text_id]
-        selections.clear()
-        set_selected_text(selected_input, selections)
-        need_update_select = True
+        sketch_texts_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
+        sketch_texts = dialog_selection_map_[text_id]
+        sketch_texts.clear()
+        set_row_sketch_texts_text(sketch_texts_input, sketch_texts)
+        need_update_select_input = True
         update_select_force = True
     elif args.input.id == 'select':
-        global addin_updating_select_
-        row = table_input.selectedRow
-        if not addin_updating_select_:
-            if row != -1:
-                text_id = get_text_id(table_input.getInputAtPosition(row, 0))
-                selected_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
-                
-                selections = dialog_selection_map_[text_id]
-                selections.clear()
-                for i in range(select_input.selectionCount):
-                    text_proxy = select_input.selection(i).entity
-                    sketch = text_proxy.parentSketch
-                    selections.append(text_proxy)
+        handle_select_input_change(table_input)
 
-                set_selected_text(selected_input, selections)
-
-    if need_update_select:
-        # Wait for the table selection to update before updating select input
+    if need_update_select_input:
+        # Wait for the table row selection to update before updating select input
         events_manager_.delay(lambda: update_select_input(table_input, update_select_force))
 
-def update_select_input(table_input, force=False):
-    global last_selected_row_
+def map_cmd_pre_select_handler(args: adsk.core.SelectionEventArgs):
+    # Select all proxies pointing to the same SketchText
+    selected_text_proxy = args.selection.entity
+    native_sketch_text = get_native_sketch_text(selected_text_proxy)
+    sketch_text_proxies = get_sketch_text_proxies(native_sketch_text)
+    additional = adsk.core.ObjectCollection.create()
+    for sketch_text_proxy in sketch_text_proxies:
+        # Documentation says to not add the user-provided selection,
+        # as it will make it unselected.
+        # Does not seem to make a difference. Maybe it only applies
+        # to the select event.
+        if sketch_text_proxy != selected_text_proxy:
+            additional.add(sketch_text_proxy)
+    # Note: This triggers a select event for every added selection
+    args.additionalEntities = additional
 
+def map_cmd_select_handler(args: adsk.core.SelectionEventArgs):
+    #print("SELECT", args.selection.entity, args.selection.entity.parentSketch.name)
+    dialog_state_.pending_unselects.clear()
+
+def map_cmd_unselect_handler(args: adsk.core.SelectionEventArgs):
+    #print("UNSELECT", args.selection.entity, args.selection.entity.parentSketch.name)
+    # args.additionalEntities does not seem to work for unselect and activeInput seems
+    # to not be set. Just store what happened and sort it out in the input_changed
+    # handler.
+    dialog_state_.pending_unselects.append(args.selection.entity)
+
+def handle_select_input_change(table_input):
+    row = table_input.selectedRow
+    if dialog_state_.addin_updating_select or row == -1:
+        return
+
+    select_input = command_.commandInputs.itemById('select')
+    text_id = get_text_id(table_input.getInputAtPosition(row, 0))
+    sketch_texts_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
+    
+    sketch_texts = dialog_selection_map_[text_id]
+    sketch_texts.clear()
+    pending_unselect_sketch_texts = [get_native_sketch_text(u)
+                                     for u in dialog_state_.pending_unselects]
+    for i in range(select_input.selectionCount):
+        # The selection will give us a proxy to the instance that the user selected
+        sketch_text_proxy = select_input.selection(i).entity
+        native_sketch_text = get_native_sketch_text(sketch_text_proxy)
+        if not native_sketch_text:
+            # This should not happen, but handle it gracefully
+            print(f"{NAME} could not get native skech text for {sketch_text_proxy.parentSketch.name}")
+            continue
+        if (native_sketch_text not in sketch_texts and
+            native_sketch_text not in pending_unselect_sketch_texts):
+            sketch_texts.append(native_sketch_text)
+    set_row_sketch_texts_text(sketch_texts_input, sketch_texts)
+
+    if dialog_state_.pending_unselects:
+        dialog_state_.pending_unselects.clear()
+        # User unselected a sketch text proxy. We need to unselect all proxies pointing
+        # to the same sketch text.
+        # There seems to be no way of removing selections from SelectionCommandInput,
+        # so we rebuild the selection list instead.
+        update_select_input(table_input, force=True)
+
+def update_select_input(table_input, force=False):
     if not table_input.isValid:
         # Dialog is likely closed. This is an effect of the delay() call.
         return
     
     row = table_input.selectedRow
-    if row != last_selected_row_ or force:
-        global addin_updating_select_
+    if row != dialog_state_.last_selected_row or force:
         # addSelection trigger inputChanged events. They are triggered directly at the function call.
-        addin_updating_select_ = True
+        dialog_state_.addin_updating_select = True
         select_input = command_.commandInputs.itemById('select')
         select_input.clearSelection()
         if row != -1:
             text_id = get_text_id(table_input.getInputAtPosition(row, 0))
-            for text_proxy in dialog_selection_map_[text_id]:
+            for sketch_text in dialog_selection_map_[text_id]:
                 # "This method is not valid within the commandCreated event but must be used later
                 # in the command lifetime. If you want to pre-populate the selection when the
                 # command is starting, you can use this method in the activate method of the Command."
-                select_input.addSelection(text_proxy)
-        last_selected_row_ = row
-        addin_updating_select_ = False
+                for sketch_text_proxy in get_sketch_text_proxies(sketch_text):
+                    select_input.addSelection(sketch_text_proxy)
+        dialog_state_.last_selected_row = row
+        dialog_state_.addin_updating_select = False
 
-def set_selected_text(selected_input, selections):
-    if selections:
-        value = ', '.join(sorted(set([s.parentSketch.name for s in selections])))
+def get_native_sketch_text(sketch_text_proxy):
+    if sketch_text_proxy is None:
+        return None
+    sketch_proxy = sketch_text_proxy.parentSketch
+    native_sketch = sketch_proxy.nativeObject
+    if native_sketch is None:
+        # This is already a native object (likely a root component sketch)
+        return sketch_text_proxy
+    return find_equal_sketch_text(native_sketch, sketch_text_proxy)
+
+def get_sketch_text_proxies(native_sketch_text):
+    design: adsk.fusion.Design = app_.activeProduct
+    native_sketch = native_sketch_text.parentSketch
+    in_occurrences = design.rootComponent.allOccurrencesByComponent(native_sketch.parentComponent)
+
+    if in_occurrences.count == 0:
+        # Root level sketch. There are no occurences and there will be no proxies.
+        return [native_sketch_text]
+
+    sketch_text_proxies = []
+    for occurrence in in_occurrences:
+        sketch_proxy = native_sketch.createForAssemblyContext(occurrence)
+        sketch_text_proxy = find_equal_sketch_text(sketch_proxy, native_sketch_text)
+        sketch_text_proxies.append(sketch_text_proxy)
+    return sketch_text_proxies
+
+def find_equal_sketch_text(sketch, sketch_text):
+    '''Used when mapping proxy <--> native'''
+    for st in sketch.sketchTexts:
+        if is_sketch_text_equal(st, sketch_text):
+            return st
+
+def is_sketch_text_equal(a, b):
+    '''Tries to determine if two SketchText objects belonging to the same Sketch are equal.
+    SketchTexts might be proxies.'''
+    return a.position.isEqualTo(b.position)
+
+def set_row_sketch_texts_text(sketch_texts_input, sketch_texts):
+    if sketch_texts:
+        value = ', '.join(sorted(set([s.parentSketch.name for s in sketch_texts])))
         # Indicate if not all selections are visible. Show all in tooltip.
-        if len(selections) > 2:
-            selected_input.value = f'({len(selections)}) {value}'
+        if len(sketch_texts) > 2:
+            sketch_texts_input.value = f'({len(sketch_texts)}) {value}'
         else:
-            selected_input.value = value
-        selected_input.tooltip = value
+            sketch_texts_input.value = value
+        sketch_texts_input.tooltip = value
     else:
-        selected_input.value = '<No selections>'
-        selected_input.tooltip = ''
+        sketch_texts_input.value = '<No selections>'
+        sketch_texts_input.tooltip = ''
 
 def get_text_id(input_or_str):
     if isinstance(input_or_str, adsk.core.CommandInput):
@@ -304,17 +403,16 @@ def get_text_id(input_or_str):
 
 def add_row(table_input, text_id, new_row=True, text=None):
     global dialog_selection_map_
-    global last_selected_row_
     design: adsk.fusion.Design = app_.activeProduct
 
-    selections = dialog_selection_map_[text_id]
+    sketch_texts = dialog_selection_map_[text_id]
 
     row_index = table_input.rowCount
 
     # Using StringValueInput + isReadOnly to allow the user to still select the row
-    selected_input = table_input.commandInputs.addStringValueInput(f'sketchtexts_{text_id}', '', '')
-    selected_input.isReadOnly = True
-    set_selected_text(selected_input, selections)
+    sketch_texts_input = table_input.commandInputs.addStringValueInput(f'sketchtexts_{text_id}', '', '')
+    sketch_texts_input.isReadOnly = True
+    set_row_sketch_texts_text(sketch_texts_input, sketch_texts)
 
     clear_selection_input = table_input.commandInputs.addBoolValueInput(f'clear_btn_{text_id}', 'X',
                                                                         False, './resources/clear_selection', True)
@@ -324,7 +422,7 @@ def add_row(table_input, text_id, new_row=True, text=None):
         text = ''
     value_input = table_input.commandInputs.addStringValueInput(f'value_{text_id}', '', text)
 
-    table_input.addCommandInput(selected_input, row_index, 0)
+    table_input.addCommandInput(sketch_texts_input, row_index, 0)
     table_input.addCommandInput(clear_selection_input, row_index, 1)
     table_input.addCommandInput(value_input, row_index, 2)
     
@@ -336,7 +434,7 @@ def add_row(table_input, text_id, new_row=True, text=None):
 def remove_row(table_input: adsk.core.TableCommandInput, row_index):
     text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
     table_input.deleteRow(row_index)
-    removed_texts_.append(text_id)
+    dialog_state_.removed_texts.append(text_id)
     if table_input.rowCount > row_index:
         table_input.selectedRow = row_index
     else:
@@ -364,18 +462,18 @@ def save(cmd):
 
     for row_index in range(table_input.rowCount):
         text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
-        selections = dialog_selection_map_[text_id]
+        sketch_texts = dialog_selection_map_[text_id]
         text = table_input.commandInputs.itemById(f'value_{text_id}').value
 
         remove_attributes(text_id)
 
         design.attributes.add('thomasa88_ParametricText', f'textValue_{text_id}', text)
     
-        for sketch_text in selections:
+        for sketch_text in sketch_texts:
             sketch_text.attributes.add('thomasa88_ParametricText', f'hasText_{text_id}', '')
             set_sketch_text(sketch_text, evaluate_text(text))
 
-    for text_id in removed_texts_:
+    for text_id in dialog_state_.removed_texts:
         remove_attributes(text_id)
 
     # Save some memory
@@ -385,7 +483,7 @@ def save_next_id():
     global dialog_next_id_
     design: adsk.fusion.Design = app_.activeProduct
     next_id = dialog_next_id_
-    print("SAVE NEXT ID", next_id)
+    print(f"{NAME} SAVE NEXT ID {next_id}")
     if next_id is None:
         ui_.messageBox(f'{NAME}: Failed to save text ID counter. Save failed.\n\n'
                        'Please inform the developer of the steps you performed to trigger this error.')
@@ -541,7 +639,7 @@ def load_next_id():
             dialog_next_id_ = int(next_id_attr.value)
     else:
         dialog_next_id_ = 0
-    print("LOAD NEXT ID", dialog_next_id_)
+    print(f"{NAME} LOAD NEXT ID {dialog_next_id_}")
 
 class TextInfo:
     def __init__(self):
