@@ -531,6 +531,7 @@ def set_sketch_text(sketch_text, text):
             # Unhook the text from the text parameter?
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
+DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+\))$')
 def evaluate_text(text, sketch_text, next_version=False):
     design: adsk.fusion.Design = app_.activeProduct
     def sub_func(subst_match):
@@ -582,6 +583,18 @@ def evaluate_text(text, sketch_text, next_version=False):
                 ### TODO: Handle Undo
                 # RootComponent turns into the name of the document including version number
                 value = sketch_text.parentSketch.parentComponent.name
+            elif member == 'file':
+                ### Can we handle "Save as" or document copying?
+                # activeDocument.name and activeDocument.dataFile.name gives us the same
+                # value, except that the former exists and gives the value "Untitled" for
+                # unsaved documents.
+                document_name = app_.activeDocument.name
+                # Name string looks like this:
+                # <name> v3
+                # <name> (v3~recovered)
+                # Strip the suffix
+                document_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', document_name)
+                value = document_name
             elif member == 'sketch':
                 ### Is this useful? Let's users edit the texts directly in the Browser or Timeline, I guess.
                 value = sketch_text.parentSketch.name
