@@ -505,7 +505,9 @@ def remove_attributes(text_id):
 
 def set_sketch_text(sketch_text, text):
     try:
-        sketch_text.text = text
+        # Avoid triggering computations and undo history for unchanged texts
+        if sketch_text.text != text:
+            sketch_text.text = text
     except RuntimeError as e:
         msg = None
         if len(e.args) > 0:
@@ -580,7 +582,6 @@ def evaluate_text(text, sketch_text, next_version=False):
                 save_time_local = save_time.astimezone()
                 value = save_time_local
             elif member == 'component':
-                ### TODO: Handle Undo
                 # RootComponent turns into the name of the document including version number
                 value = sketch_text.parentSketch.parentComponent.name
             elif member == 'file':
