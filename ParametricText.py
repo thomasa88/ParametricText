@@ -518,7 +518,7 @@ def set_sketch_text(sketch_text, text):
             old_font = sketch_text.fontName + '.shx'
             # Let's hope the user has Arial
             sketch_text.fontName = 'Arial'
-            sketch_text.text = evaluate_text(text)
+            sketch_text.text = text
             sketch_text.fontName = old_font
         elif msg == '3 : invalid input angle':
             # Negative angle bug. Cannot set text when the angle is negative.
