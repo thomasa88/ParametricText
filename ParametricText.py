@@ -48,6 +48,7 @@ importlib.reload(thomasa88lib.manifest)
 importlib.reload(thomasa88lib.error)
 
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
+MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
 PANEL_IDS = [
             'SketchModifyPanel',
             'SolidModifyPanel',
@@ -737,6 +738,9 @@ def check_storage_version():
         else:
             file_db_version = None
 
+    if file_db_version is None:
+        # No text parameters in this document
+        return True
     if file_db_version == 1:
         ret = ui_.messageBox(f'This document has text parameters created with an older storage format version ({file_db_version}), '
                              f'which is not compatible with the current storage format version ({STORAGE_VERSION}).\n\n'
@@ -746,11 +750,7 @@ def check_storage_version():
                              f'{NAME} v {manifest_["version"]}',
                              adsk.core.MessageBoxButtonTypes.OKCancelButtonType)
         if ret == adsk.core.DialogResults.DialogOK:
-            ok = migrate_storage(file_db_version, STORAGE_VERSION)
-            if ok:
-                ui_.messageBox('Migration done!')
-            else:
-                ui_.messageBox('Migration failed. Please revert the document to the latest saved version.')
+            migrate_storage_async(file_db_version, STORAGE_VERSION)
         else:
             disable_addin()
     elif file_db_version == STORAGE_VERSION:
@@ -772,8 +772,32 @@ def check_storage_version():
         disable_addin()
     return False
 
-def migrate_storage(from_version, to_version):
-    ### Run this as a command to avoid undo history? (or get one undo history step)
+migrate_from_ = None
+migrate_to_ = None
+def migrate_storage_async(from_version, to_version):
+    # Running this as a command to avoid a big list of "Set attribute" in the Undo history.
+    global migrate_from_, migrate_to_
+    migrate_from_ = from_version
+    migrate_to_ = to_version
+    migrate_cmd_def = ui_.commandDefinitions.itemById(MIGRATE_CMD_ID)
+    if migrate_cmd_def:
+        migrate_cmd_def.deleteMe()
+    migrate_cmd_def = ui_.commandDefinitions.addButtonDefinition(MIGRATE_CMD_ID, 'Migrate Text Parameters', '')
+    events_manager_.add_handler(migrate_cmd_def.commandCreated,
+                                callback=migrate_cmd_created_handler)
+    migrate_cmd_def.execute()
+
+def migrate_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+    cmd = args.command
+    events_manager_.add_handler(cmd.execute, callback=migrate_cmd_execute_handler)
+    cmd.isAutoExecute = True
+    # The synchronous doExecute makes Fusion crash..
+     #cmd.doExecute(True)
+    # Check migration result
+
+def migrate_cmd_execute_handler(args: adsk.core.CommandEventArgs):
+    from_version = migrate_from_
+    to_version = migrate_to_
     design: adsk.fusion.Design = app_.activeProduct
     print(f'{NAME} Migrating storage: {from_version} -> {to_version}')
     dump_storage()
@@ -801,11 +825,12 @@ def migrate_storage(from_version, to_version):
         ui_.messageBox('Cannot migrate from storage version {from_version} to {to_version}!',
                        f'{NAME} v {manifest_["version"]}')
         disable_addin()
-        return False
+        return
+
     dump_storage()
     print(f'{NAME} Migration done.')
     update_texts()
-    return True
+    ui_.messageBox('Migration complete!')
 
 def migrate_proxy_to_native_sketch(old_attr_prefix, new_attr_prefix):
     design: adsk.fusion.Design = app_.activeProduct
