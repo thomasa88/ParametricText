@@ -27,6 +27,7 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from collections import defaultdict
 import datetime
+import queue
 import re
 
 NAME = 'ParametricText'
@@ -49,6 +50,7 @@ importlib.reload(thomasa88lib.error)
 
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
+UPDATE_CMD_ID = 'thomasa88_ParametricText_Update'
 PANEL_IDS = [
             'SketchModifyPanel',
             'SolidModifyPanel',
@@ -146,6 +148,14 @@ def run(context):
         events_manager_.add_handler(ui_.commandTerminated, callback=command_terminated_handler)
 
         events_manager_.add_handler(app_.documentOpened, callback=document_opened_handler)
+
+        # Command used to group all "Set attributes" to one item in Undo history
+        update_cmd_def = ui_.commandDefinitions.itemById(UPDATE_CMD_ID)
+        if update_cmd_def:
+            update_cmd_def.deleteMe()
+        update_cmd_def = ui_.commandDefinitions.addButtonDefinition(UPDATE_CMD_ID, 'Calculate Text Parameters', '')
+        events_manager_.add_handler(update_cmd_def.commandCreated,
+                                    callback=update_cmd_created_handler)
 
         if app_.isStartupComplete:
             # Add-in was (re)loaded while Fusion 360 was running
@@ -791,6 +801,7 @@ def migrate_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     cmd = args.command
     events_manager_.add_handler(cmd.execute, callback=migrate_cmd_execute_handler)
     cmd.isAutoExecute = True
+    cmd.isRepeatable = False
     # The synchronous doExecute makes Fusion crash..
      #cmd.doExecute(True)
     # Check migration result
@@ -895,6 +906,8 @@ def disable_addin():
 
 def document_saving_handler(args: adsk.core.DocumentEventArgs):
     if ui_.activeWorkspace.id == 'FusionSolidEnvironment':
+        # This cannot run async or delayed, as we must update the parameters before Fusion
+        # saves the document.
         update_texts(text_filter=['_.version', '_.date'], next_version=True)
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
@@ -907,9 +920,9 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
         args.terminationReason == adsk.core.CommandTerminationReason.CompletedTerminationReason):
         # User (might have) changed a parameter or component name
 
-        # Taking action directly disturbs the Paste New command.
-        # Let's run at the end of the event queue.
-        events_manager_.delay(update_texts)
+        # Taking action directly disturbs the Paste New command, so update_texts()
+        # must be delayed or called through update_texts_async()
+        update_texts_async()
 
     ### TODO: Update when user selects "Compute All"
     #elif args.commandId == 'FusionComputeAllCommand':
@@ -928,3 +941,24 @@ def update_texts(text_filter=None, next_version=False):
                 # Must evaluate for every sketch for every text, in case
                 # the user has used the component name parameter.
                 set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
+
+async_update_queue_ = queue.Queue()
+def update_texts_async(text_filter=None, next_version=False):
+    # Running this as a command to avoid a big list of "Set attribute" in the Undo history.
+    # We cannot avoid having at least one item in the Undo list:
+    # https://forums.autodesk.com/t5/fusion-360-api-and-scripts/stop-custom-graphics-from-being-added-to-undo/m-p/9438477
+    async_update_queue_.put((text_filter, next_version))
+    update_cmd_def = ui_.commandDefinitions.itemById(UPDATE_CMD_ID)
+    update_cmd_def.execute()
+
+def update_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+    cmd = args.command
+    events_manager_.add_handler(cmd.execute, callback=update_cmd_execute_handler)
+    cmd.isAutoExecute = True
+    cmd.isRepeatable = False
+    # The synchronous doExecute makes Fusion crash..
+     #cmd.doExecute(True)
+    # Check migration result
+
+def update_cmd_execute_handler(args: adsk.core.CommandEventArgs):
+    update_texts(*async_update_queue_.get())
