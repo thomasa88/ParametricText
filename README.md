@@ -105,6 +105,14 @@ The following table shows examples of using the special parameter `_`.
 * `_.file` does not update on file rename/copy.
   * Workaround is to open the *Change Text Parameters* and click *OK* in the new document.
 
+## Migrating from Version 1.x to 2.x
+
+A new storage format was introduced in version 2, to accommodate new features. If you load a document created with the old version, you will be prompted to update the text parameters to the new version.
+
+After updating the text parameters, they can no longer be edited with the old version.
+
+It is recommended to save the document before doing the update, to have a backup.
+
 ## Reporting Issues
 
 Please report any issues that you find in the add-in on the [Issues](https://github.com/thomasa88/ParametricText/issues) page.
@@ -132,6 +140,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
     * Handle selection of texts in multi-occurrence components better.
     * "Inherit" sketch parameters when pasting using *Paste New*.
   * New parameter values: `_.component`, `_.file`
+  * Storage format version 2.
 * v 1.1.0
   * `_.date` for retrieving document save date.
   * Workaround for [Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551) when using Autodesk® SHX fonts.

@@ -66,6 +66,11 @@ QUICK_REF = '''<b>Quick Reference</b><br>
 '''
 QUICK_REF_LINES = QUICK_REF.count('<br>') + 1
 
+# The attribute "database" version. Used to check compatibility with
+# parameters stored in the document.
+STORAGE_VERSION = 2
+ATTRIBUTE_GROUP = 'thomasa88_ParametricText'
+
 class SelectAction:
     Select = 1
     Unselect = 2
@@ -101,6 +106,9 @@ dialog_next_id_ = None
 
 dialog_state_ = None
 
+# Flag to disable add-in if there are storage mismatches.
+enabled_ = True
+
 def run(context):
     global app_
     global ui_
@@ -133,12 +141,14 @@ def run(context):
                 old_control.deleteMe()
             panel.controls.addCommand(map_cmd_def, 'ChangeParameterCommand', False)
 
-        #map_control = panel.controls.addCommand(map_cmd_def)
-        #map_control.isPromotedByDefault = True
-        #map_control.isPromoted = True
-
         events_manager_.add_handler(app_.documentSaving, callback=document_saving_handler)
         events_manager_.add_handler(ui_.commandTerminated, callback=command_terminated_handler)
+
+        events_manager_.add_handler(app_.documentOpened, callback=document_opened_handler)
+
+        if app_.isStartupComplete:
+            # Add-in was (re)loaded while Fusion 360 was running
+            check_storage_version()
 
 def stop(context):
     with error_catcher_:
@@ -159,6 +169,10 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     cmd = args.command
     command_ = cmd
     design: adsk.fusion.Design = app_.activeProduct
+
+    if not enabled_:
+        if not check_storage_version():
+            return
 
     cmd.setDialogMinimumSize(450, 200)
     cmd.setDialogInitialSize(450, 300)
@@ -457,6 +471,8 @@ def save(cmd):
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
     design: adsk.fusion.Design = app_.activeProduct
 
+    save_storage_version()
+
     if not save_next_id():
         return
 
@@ -467,10 +483,10 @@ def save(cmd):
 
         remove_attributes(text_id)
 
-        design.attributes.add('thomasa88_ParametricText', f'textValue_{text_id}', text)
+        design.attributes.add(ATTRIBUTE_GROUP, f'textValue_{text_id}', text)
     
         for sketch_text in sketch_texts:
-            sketch_text.attributes.add('thomasa88_ParametricText', f'hasText_{text_id}', '')
+            sketch_text.attributes.add(ATTRIBUTE_GROUP, f'hasText_{text_id}', '')
             set_sketch_text(sketch_text, evaluate_text(text, sketch_text))
 
     for text_id in dialog_state_.removed_texts:
@@ -478,6 +494,17 @@ def save(cmd):
 
     # Save some memory
     dialog_selection_map_.clear()
+
+def save_storage_version():
+    design: adsk.fusion.Design = app_.activeProduct
+
+    design.attributes.add(ATTRIBUTE_GROUP, 'storageVersion', str(STORAGE_VERSION))
+
+    # Add a warning to v1.x.x users
+    design.attributes.add(ATTRIBUTE_GROUP, 'customTextValue_0', f'Parameters were created using version {manifest_["version"]} of {NAME}')
+    design.attributes.add(ATTRIBUTE_GROUP, 'customTextType_0', 'custom')
+    design.attributes.add(ATTRIBUTE_GROUP, 'customTextValue_1', f'Please update {NAME}')
+    design.attributes.add(ATTRIBUTE_GROUP, 'customTextType_1', 'custom')
 
 def save_next_id():
     global dialog_next_id_
@@ -488,18 +515,18 @@ def save_next_id():
         ui_.messageBox(f'{NAME}: Failed to save text ID counter. Save failed.\n\n'
                        'Please inform the developer of the steps you performed to trigger this error.')
         return False
-    design.attributes.add('thomasa88_ParametricText', 'nextId', str(next_id))
+    design.attributes.add(ATTRIBUTE_GROUP, 'nextId', str(next_id))
     dialog_next_id_ = None
     return True
 
 def remove_attributes(text_id):
     design = app_.activeProduct
 
-    old_attrs = design.findAttributes('thomasa88_ParametricText', f'hasText_{text_id}')
+    old_attrs = design.findAttributes(ATTRIBUTE_GROUP, f'hasText_{text_id}')
     for old_attr in old_attrs:
         old_attr.deleteMe()
 
-    value_attr = design.attributes.itemByName('thomasa88_ParametricText', f'textValue_{text_id}')
+    value_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, f'textValue_{text_id}')
     if value_attr:
         value_attr.deleteMe()
 
@@ -648,7 +675,7 @@ def load(cmd):
 def load_next_id():
     global dialog_next_id_
     design: adsk.fusion.Design = app_.activeProduct
-    next_id_attr = design.attributes.itemByName('thomasa88_ParametricText', 'nextId')
+    next_id_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, 'nextId')
     if next_id_attr:
         if next_id_attr.value is None or next_id_attr.value == 'None':
             ui_.messageBox(f'{NAME}: Text id count value is corrupt: {next_id_attr.value}.\n\n'
@@ -672,7 +699,7 @@ def get_texts():
 
     texts = defaultdict(TextInfo)
 
-    value_attrs = [attr for attr in design.attributes.itemsByGroup('thomasa88_ParametricText')
+    value_attrs = [attr for attr in design.attributes.itemsByGroup(ATTRIBUTE_GROUP)
                   if attr.name.startswith('textValue_')]
     for value_attr in value_attrs:
         if not value_attr:
@@ -682,7 +709,7 @@ def get_texts():
         text_info.text_value = value_attr.value
 
         # Get all sketch texts belonging to the attribute
-        has_attrs = design.findAttributes('thomasa88_ParametricText', f'hasText_{text_id}')
+        has_attrs = design.findAttributes(ATTRIBUTE_GROUP, f'hasText_{text_id}')
         for has_attr in has_attrs:
             sketch_texts = text_info.sketch_texts
             if has_attr.parent:
@@ -693,16 +720,157 @@ def get_texts():
     
     return texts
 
+def document_opened_handler(args: adsk.core.DocumentEventArgs):
+    check_storage_version()
+
+def check_storage_version():
+    design: adsk.fusion.Design = app_.activeProduct
+    storage_version_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, 'storageVersion')
+    if storage_version_attr:
+        file_db_version = int(storage_version_attr.value)
+    else:
+        # Either no parametric text data is saved or v1.x.x was used.
+        next_id_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, 'nextId')
+        if next_id_attr:
+            # Add-in v1.x.x
+            file_db_version = 1
+        else:
+            file_db_version = None
+
+    if file_db_version == 1:
+        ret = ui_.messageBox(f'This document has text parameters created with an older storage format version ({file_db_version}), '
+                             f'which is not compatible with the current storage format version ({STORAGE_VERSION}).\n\n'
+                             'The text parameters will be converted to the new storage format.\n\n'
+                             f'If you proceed, the document will no longer work with the older version of {NAME}. '
+                             f'If you cancel, you will not be able to update the text parameters using this version of {NAME}.',
+                             f'{NAME} v {manifest_["version"]}',
+                             adsk.core.MessageBoxButtonTypes.OKCancelButtonType)
+        if ret == adsk.core.DialogResults.DialogOK:
+            ok = migrate_storage(file_db_version, STORAGE_VERSION)
+            if ok:
+                ui_.messageBox('Migration done!')
+            else:
+                ui_.messageBox('Migration failed. Please revert the document to the latest saved version.')
+        else:
+            disable_addin()
+    elif file_db_version == STORAGE_VERSION:
+        # OK, this our version.
+        enable_addin()
+        return True
+    elif file_db_version > STORAGE_VERSION:
+        ui_.messageBox(f'This document has text parameters created with a newer storage format version ({file_db_version}), '
+                       f'which is not compatible with this version of {NAME} ({STORAGE_VERSION}).\n\n'
+                       f'You will need to update {NAME} to be able to update the text parameters.',
+                       f'{NAME} v {manifest_["version"]}')
+        disable_addin()
+    else:
+        ui_.messageBox(f'This document has text parameters created with unknown storage format version ({file_db_version}).\n\n'
+                       f'You will not be able to update the text parameters.\n\n'
+                       f'Please report this to the developer. It is recommended that you restore an old version '
+                       f'of your document.',
+                       f'{NAME} v {manifest_["version"]}')
+        disable_addin()
+    return False
+
+def migrate_storage(from_version, to_version):
+    ### Run this as a command to avoid undo history? (or get one undo history step)
+    design: adsk.fusion.Design = app_.activeProduct
+    print(f'{NAME} Migrating storage: {from_version} -> {to_version}')
+    dump_storage()
+    if from_version == 1 and to_version == 2:
+        # Migrate global attributes
+        design_attrs = design.attributes.itemsByGroup(ATTRIBUTE_GROUP)
+        for attr in design_attrs:
+            if attr.name.startswith('customTextType_'):
+                print(f'{NAME} deleting attribute "{attr.name}"')
+                attr.deleteMe()
+            elif attr.name.startswith('customTextValue_'):
+                text_id = get_text_id(attr.name)
+                new_attr_name = f'textValue_{text_id}'
+                print(f'{NAME} migrating "{attr.name}" -> "{new_attr_name}"')
+                design.attributes.add(ATTRIBUTE_GROUP, new_attr_name, attr.value)
+                attr.deleteMe()
+
+        # The old version put the attributes on Sketch Text Proxies. The new format uses the
+        # native Sketch Texts.
+        migrate_proxy_to_native_sketch('hasParametricText_', 'hasText_')
+
+        print(f'{NAME} writing version {to_version}')
+        save_storage_version()
+    else:
+        ui_.messageBox('Cannot migrate from storage version {from_version} to {to_version}!',
+                       f'{NAME} v {manifest_["version"]}')
+        disable_addin()
+        return False
+    dump_storage()
+    print(f'{NAME} Migration done.')
+    update_texts()
+    return True
+
+def migrate_proxy_to_native_sketch(old_attr_prefix, new_attr_prefix):
+    design: adsk.fusion.Design = app_.activeProduct
+    print(f'Migrating {old_attr_prefix} to {new_attr_prefix}')
+    attrs = design.findAttributes(ATTRIBUTE_GROUP, r're:' + old_attr_prefix + r'\d+')
+    for attr in attrs:
+        if attr.value is None:
+            print(f'Attribute {attr.name} has no value. Skipping...')
+        text_id = get_text_id(attr.name)
+        text = attr.value
+        native_sketch_texts = []
+        sketch_text_proxies = []
+        if attr.parent:
+            sketch_text_proxies.append(attr.parent)
+        if attr.otherParents:
+            for other_parent in attr.otherParents:
+                sketch_text_proxies.append(other_parent)
+        for proxy in sketch_text_proxies:
+            native = get_native_sketch_text(proxy)
+            if native and native not in native_sketch_texts:
+                native_sketch_texts.append(native)
+        for native in native_sketch_texts:
+            native.attributes.add(ATTRIBUTE_GROUP, f'{new_attr_prefix}{text_id}', text)
+        attr.deleteMe()
+
+def dump_storage():
+    design: adsk.fusion.Design = app_.activeProduct
+
+    def print_attrs(attrs):
+        for attr in attrs:
+            print(f'"{attr.name}", "{attr.value}", '
+                  f'"{parent_class_names(attr.parent)[0]}", ' +
+                  '"' + '", "'.join(parent_class_names(attr.otherParents)) + '"')
+
+    print('-' * 50)
+    print('Design attributes')
+    print_attrs(design.attributes.itemsByGroup(ATTRIBUTE_GROUP))
+    print('Entity attributes')
+    print_attrs(design.findAttributes(ATTRIBUTE_GROUP, ''))
+    print('-' * 50)
+
+def parent_class_names(parent_or_parents):
+    if parent_or_parents is None:
+        return ["None"]
+    
+    class_names = []
+    if not isinstance(parent_or_parents, adsk.core.ObjectCollection):
+        parent_or_parents = [parent_or_parents]
+
+    for parent in parent_or_parents:
+        class_names.append(thomasa88lib.utils.short_class(parent))
+    
+    return class_names
+
+def enable_addin():
+    global enabled_
+    enabled_ = True
+
+def disable_addin():
+    global enabled_
+    enabled_ = False
+
 def document_saving_handler(args: adsk.core.DocumentEventArgs):
     if ui_.activeWorkspace.id == 'FusionSolidEnvironment':
-        texts = get_texts()
-        for text_id, text_info in texts.items():
-            text = text_info.text_value
-            
-            if '_.version' or '_.date' in text:
-                for sketch_text in text_info.sketch_texts:
-                    set_sketch_text(sketch_text,
-                                    evaluate_text(text, sketch_text, next_version=True))
+        update_texts(text_filter=['_.version', '_.date'], next_version=True)
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     #print(f"{NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
@@ -723,10 +891,15 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     #    load()
     #    save()
 
-def update_texts():
+def update_texts(text_filter=None, next_version=False):
+    if not enabled_:
+        return
+
     texts = get_texts()
     for text_id, text_info in texts.items():
-        for sketch_text in text_info.sketch_texts:
-            # Must evaluate for every sketch for every text, in case
-            # the user has used the component name parameter.
-            set_sketch_text(sketch_text, evaluate_text(text_info.text_value, sketch_text))
+        text = text_info.text_value
+        if not text_filter or [filter_value for filter_value in text_filter if filter_value in text]:
+            for sketch_text in text_info.sketch_texts:
+                # Must evaluate for every sketch for every text, in case
+                # the user has used the component name parameter.
+                set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
