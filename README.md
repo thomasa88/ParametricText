@@ -104,6 +104,8 @@ The following table shows examples of using the special parameter `_`.
 * The mouse pointer must be moved before clicking on the same sketch text again, to select/unselect.
 * `_.file` does not update on file rename/copy.
   * Workaround is to open the *Change Text Parameters* and click *OK* in the new document.
+* The version when in the component string when using `_.component` on the root component does not update on save. This in an optimization for a rarely occurring use case.
+  * Workaround is to use `{_.file} v{_.version}` instead.
 
 ## Migrating from Version 1.x to 2.x
 
@@ -140,7 +142,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
     * Handle selection of texts in multi-occurrence components better.
     * "Inherit" sketch parameters when pasting using *Paste New*.
   * New parameter values: `_.component`, `_.file`
-  * Storage format version 2.
+  * Storage format version 2, to handle the new selection engine.
+  * Only one Undo item for updates due to changes (not applicable to document save).
 * v 1.1.0
   * `_.date` for retrieving document save date.
   * Workaround for [Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551) when using Autodesk® SHX fonts.
