@@ -571,7 +571,7 @@ def set_sketch_text(sketch_text, text):
             # Unhook the text from the text parameter?
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
-DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+\))$')
+DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
 def evaluate_text(text, sketch_text, next_version=False):
     design: adsk.fusion.Design = app_.activeProduct
     def sub_func(subst_match):
@@ -621,7 +621,10 @@ def evaluate_text(text, sketch_text, next_version=False):
                 value = save_time_local
             elif member == 'component':
                 # RootComponent turns into the name of the document including version number
-                value = sketch_text.parentSketch.parentComponent.name
+                # Strip it, as with _.file
+                component_name = sketch_text.parentSketch.parentComponent.name
+                component_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', component_name)
+                value = component_name
             elif member == 'file':
                 ### Can we handle "Save as" or document copying?
                 # activeDocument.name and activeDocument.dataFile.name gives us the same

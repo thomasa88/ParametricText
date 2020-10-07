@@ -104,8 +104,6 @@ The following table shows examples of using the special parameter `_`.
 * The mouse pointer must be moved before clicking on the same sketch text again, to select/unselect.
 * `_.file` does not update on file rename/copy.
   * Workaround is to open the *Change Text Parameters* and click *OK* in the new document.
-* The version when in the component string when using `_.component` on the root component does not update on save. This in an optimization for a rarely occurring use case.
-  * Workaround is to use `{_.file} v{_.version}` instead.
 
 ## Migrating from Version 1.x to 2.x
 
