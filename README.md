@@ -23,7 +23,7 @@ Make sure the directory is named `ParametricText`, with no suffix.
 
 ## Usage
 
-[Demo video](https://knowledge.autodesk.com/support/fusion-360/learn-explore/caas/screencast/Main/Details/3d4a64a7-37b3-4551-83c4-a93a4d96bca7.html)
+Please see the [Demo video](https://knowledge.autodesk.com/support/fusion-360/learn-explore/caas/screencast/Main/Details/3d4a64a7-37b3-4551-83c4-a93a4d96bca7.html) for a quick overview of ParametricText.
 
 To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select. Also, since Fusion 360™ resets some parameters when a text is modified by an add-in, it is recommended to not position the text in any way until it has been assigned a text parameter.
 
