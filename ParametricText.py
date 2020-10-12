@@ -157,7 +157,7 @@ def run(context):
         events_manager_.add_handler(update_cmd_def.commandCreated,
                                     callback=update_cmd_created_handler)
 
-        if app_.isStartupComplete:
+        if app_.isStartupComplete and is_design_workspace():
             # Add-in was (re)loaded while Fusion 360 was running
             check_storage_version()
 
@@ -735,7 +735,11 @@ def get_texts():
     return texts
 
 def document_opened_handler(args: adsk.core.DocumentEventArgs):
-    check_storage_version()
+    if is_design_workspace():
+        check_storage_version()
+
+def is_design_workspace():
+    return ui_.activeWorkspace.id == 'FusionSolidEnvironment'
 
 def check_storage_version():
     design: adsk.fusion.Design = app_.activeProduct
