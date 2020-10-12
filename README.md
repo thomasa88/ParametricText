@@ -84,7 +84,7 @@ The following table shows examples of using the special parameter `_`.
 | `v{_.version:03}`       | `v005` (Integer zero-padded to three digits)                 |
 | `{_.file}`              | `Crank`                                                      |
 | `{_.file} v{_.version}` | `Crank v5`                                                   |
-| `_.component`           | `Handle`                                                     |
+| `{_.component}`         | `Handle`                                                     |
 | `{_.date}`              | `2020-09-27` (Current date, in ISO 8601 format)              |
 | `{_.date:%m/%d/%Y}`     | `09/27/2020` (Month, day, year)                              |
 | `{_.date:%U}`           | `40` (Current week, that starts on a Sunday)                 |
