@@ -555,14 +555,27 @@ def set_sketch_text(sketch_text, text):
         if msg == '3 : invalid input font name':
             # SHX font bug. Cannot set text when a SHX font is used. Switch to a TrueType font temporarily.
             # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551
-            old_font = sketch_text.fontName + '.shx'
-            # Let's hope the user has Arial
-            sketch_text.fontName = 'Arial'
-            sketch_text.text = text
-            sketch_text.fontName = old_font
+
+            # More broken in Fusion 360™ version 2.0.9142. Let's try the TrueType
+            # workaround, if it starts working again...
+            try:
+                old_font = sketch_text.fontName + '.shx'
+                # Let's hope the user has Arial
+                sketch_text.fontName = 'Arial'
+                sketch_text.text = text
+                sketch_text.fontName = old_font
+            except RuntimeError:
+                ui_.messageBox(f'Cannot set text parameter in the sketch "{sketch_text.parentSketch.name}" '
+                                'due to the text having an SHX font. This bug was introduced by Fusion 360™ version 2.0.9142.\n\n'
+                                'Please change the text to not have an SHX font or remove it from the paremeter list.\n\n'
+                                'See add-in help document/README for more information.',
+                                f'{NAME} v {manifest_["version"]}')
+                # Unhook the text from the text parameter?
         elif msg == '3 : invalid input angle':
             # Negative angle bug. Cannot set text when the angle is negative.
             # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-unable-to-modify-text-of-a-sketchtext-created-manually-with/m-p/9502107
+            # This seems to have been fixed in Fusion 360 v 2.0.9142, but keeping this branch in case they
+            # break it again.
             ui_.messageBox(f'Cannot set text parameter in the sketch "{sketch_text.parentSketch.name}" '
                             'due to the text having a negative angle.\n\n'
                             'Please edit the text to have a positive angle (add 360 degrees to the current angle).\n\n'
