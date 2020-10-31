@@ -139,7 +139,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
     * "Inherit" sketch parameters when pasting using *Paste New*.
   * New parameter values: `_.component`, `_.file`
   * Storage format version 2, to handle the new selection engine.
-  * Only one Undo item for updates due to changes (not applicable to document save).
+  * Only one Undo item for text updates (not applicable to document save).
+  * Show count of texts selected in each sketch.
 * v 1.1.0
   * `_.date` for retrieving document save date.
   * Workaround for [Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551) when using Autodesk® SHX fonts.

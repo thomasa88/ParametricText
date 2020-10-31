@@ -412,10 +412,22 @@ def is_sketch_text_equal(a, b):
 
 def set_row_sketch_texts_text(sketch_texts_input, sketch_texts):
     if sketch_texts:
-        value = ', '.join(sorted(set([s.parentSketch.name for s in sketch_texts])))
+        total_count = 0
+        count_per_sketch = defaultdict(int)
+        for sketch_text in sketch_texts:
+            # Name is unique
+            count_per_sketch[sketch_text.parentSketch.name] += 1
+            total_count += 1
+        display_names = []
+        for sketch_name, count in count_per_sketch.items():
+            display_name = sketch_name
+            if count > 1:
+                display_name += f' ({count})'
+            display_names.append(display_name)
+        value = ', '.join(sorted(display_names))
         # Indicate if not all selections are visible. Show all in tooltip.
-        if len(sketch_texts) > 2:
-            sketch_texts_input.value = f'({len(sketch_texts)}) {value}'
+        if total_count > 2:
+            sketch_texts_input.value = f'[{total_count}] {value}'
         else:
             sketch_texts_input.value = value
         sketch_texts_input.tooltip = value
