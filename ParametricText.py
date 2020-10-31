@@ -508,10 +508,16 @@ def save(cmd):
     if not save_next_id():
         return
 
+    # TODO: Use this text map the whole time - instead of dialog_selection_map_
+    texts = defaultdict(TextInfo)
     for row_index in range(table_input.rowCount):
         text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
         sketch_texts = dialog_selection_map_[text_id]
         text = table_input.commandInputs.itemById(f'value_{text_id}').value
+
+        text_info = texts[text_id]
+        text_info.text_value = text
+        text_info.sketch_texts = sketch_texts
 
         remove_attributes(text_id)
 
@@ -519,13 +525,14 @@ def save(cmd):
     
         for sketch_text in sketch_texts:
             sketch_text.attributes.add(ATTRIBUTE_GROUP, f'hasText_{text_id}', '')
-            set_sketch_text(sketch_text, evaluate_text(text, sketch_text))
 
     for text_id in dialog_state_.removed_texts:
         remove_attributes(text_id)
 
     # Save some memory
     dialog_selection_map_.clear()
+
+    update_texts(texts=texts)
 
 def save_storage_version():
     design: adsk.fusion.Design = app_.activeProduct
@@ -971,11 +978,12 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     #    load()
     #    save()
 
-def update_texts(text_filter=None, next_version=False):
+def update_texts(text_filter=None, next_version=False, texts=None):
     if not enabled_:
         return
 
-    texts = get_texts()
+    if not texts:
+        texts = get_texts()
     for text_id, text_info in texts.items():
         text = text_info.text_value
         if not text_filter or [filter_value for filter_value in text_filter if filter_value in text]:
@@ -983,6 +991,9 @@ def update_texts(text_filter=None, next_version=False):
                 # Must evaluate for every sketch for every text, in case
                 # the user has used the component name parameter.
                 set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
+
+    design: adsk.fusion.Design = app_.activeProduct
+    design.computeAll()
 
 async_update_queue_ = queue.Queue()
 def update_texts_async(text_filter=None, next_version=False):
