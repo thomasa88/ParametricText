@@ -399,16 +399,23 @@ def get_sketch_text_proxies(native_sketch_text):
         sketch_text_proxies.append(sketch_text_proxy)
     return sketch_text_proxies
 
-def find_equal_sketch_text(sketch, sketch_text):
+def find_equal_sketch_text(in_sketch, sketch_text):
     '''Used when mapping proxy <--> native'''
-    for st in sketch.sketchTexts:
-        if is_sketch_text_equal(st, sketch_text):
-            return st
+    # Workaround for missing SketchText.nativeObject
+    # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/getting-nativeobject-for-sketchtext/td-p/9782524
 
-def is_sketch_text_equal(a, b):
-    '''Tries to determine if two SketchText objects belonging to the same Sketch are equal.
-    SketchTexts might be proxies.'''
-    return a.position.isEqualTo(b.position)
+    # Assuming the texts will be returned in the same order
+    # from both proxy and native sketch.
+    text_index = 0
+    for i, st in enumerate(sketch_text.parentSketch.sketchTexts):
+        if st == sketch_text:
+            text_index = i
+            break
+    else:
+        ui_.messageBox(f'Failed to translate sketch text proxy (component instance) to native text object.\n\n'
+                        'Please inform the developer of what steps you performed to trigger this error.',
+                        f'{NAME} v {manifest_["version"]}')
+    return in_sketch.sketchTexts.item(text_index)
 
 def set_row_sketch_texts_text(sketch_texts_input, sketch_texts):
     if sketch_texts:
@@ -537,8 +544,9 @@ def save_next_id():
     next_id = dialog_next_id_
     print(f"{NAME} SAVE NEXT ID {next_id}")
     if next_id is None:
-        ui_.messageBox(f'{NAME}: Failed to save text ID counter. Save failed.\n\n'
-                       'Please inform the developer of the steps you performed to trigger this error.')
+        ui_.messageBox(f'Failed to save text ID counter. Save failed.\n\n'
+                       'Please inform the developer of the steps you performed to trigger this error.',
+                       f'{NAME} v {manifest_["version"]}')
         return False
     design.attributes.add(ATTRIBUTE_GROUP, 'nextId', str(next_id))
     dialog_next_id_ = None
