@@ -35,6 +35,10 @@ To specify what sketch texts to affect, click the desired row and then select th
 
 Enter the text in the text field. The text can contain values from parameters. See [Parameters](#parameters).
 
+The various buttons with braces (`{}`) allows for quickly inserting parameters.
+
+Enabling *Run Compute All automatically* will make ParametricText run *Compute All* every time text parameters are updated. This can be needed for geometry depending on the texts to be redrawn.
+
 Press OK to save the changes.
 
 The add-in can be temporarily disabled using the *Scripts and Add-ins* dialog. Press *Shift+S* in Fusion 360™ and go to the *Add-Ins* tab.
@@ -141,7 +145,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
   * Storage format version 2, to handle the new selection engine.
   * Only one Undo item for text updates (not applicable to document save).
   * Show count of texts selected in each sketch.
-  * Run *Compute All* automatically, to force features to update.
+  * Option to run *Compute All* automatically, to force features to update.
   * Detect missing *thomasa88lib* helper library.
   * Quick buttons for prepending braces and appending common parameters.
 * v 1.1.0

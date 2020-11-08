@@ -39,6 +39,7 @@ try:
     from .thomasa88lib import events
     from .thomasa88lib import manifest
     from .thomasa88lib import error
+    from .thomasa88lib import settings
 except ImportError as e:
     ui = adsk.core.Application.get().userInterface
     ui.messageBox(f'{NAME} cannot load since thomasa88lib seems to be missing.\n\n'
@@ -53,6 +54,7 @@ importlib.reload(thomasa88lib.utils)
 importlib.reload(thomasa88lib.events)
 importlib.reload(thomasa88lib.manifest)
 importlib.reload(thomasa88lib.error)
+importlib.reload(thomasa88lib.settings)
 
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
@@ -82,6 +84,8 @@ QUICK_REF_LINES = QUICK_REF.count('<br>') + 1
 STORAGE_VERSION = 2
 ATTRIBUTE_GROUP = 'thomasa88_ParametricText'
 
+AUTOCOMPUTE_SETTING = 'autocompute'
+
 class SelectAction:
     Select = 1
     Unselect = 2
@@ -107,6 +111,9 @@ manifest_ = thomasa88lib.manifest.read()
 error_catcher_ = thomasa88lib.error.ErrorCatcher(msgbox_in_debug=False,
                                                  msg_prefix=f'{NAME} v {manifest_["version"]}')
 events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
+settings_ = thomasa88lib.settings.SettingsManager({
+    AUTOCOMPUTE_SETTING: True
+})
 
 # Contains selections for all rows of the currently active dialog
 # This dict must be reset every time the dialog is opened,
@@ -279,6 +286,10 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
 
     quick_ref = table_input.commandInputs.addTextBoxCommandInput('quick_ref', '', QUICK_REF, QUICK_REF_LINES, True)
     quick_ref.isFullWidth = True
+
+    quick_ref = table_input.commandInputs.addTextBoxCommandInput('settings_head', '', '<b>Settings</b>', 1, True)
+    autocompute_input = cmd.commandInputs.addBoolValueInput('autocompute', 'Run Compute All automatically', True,
+                                                            './resources/auto_compute_all', settings_[AUTOCOMPUTE_SETTING])
 
     load(cmd)
 
@@ -590,6 +601,8 @@ def save(cmd):
 
     # Save some memory
     dialog_selection_map_.clear()
+
+    settings_[AUTOCOMPUTE_SETTING] = cmd.commandInputs.itemById('autocompute').value
 
     update_texts(texts=texts)
 
@@ -1051,8 +1064,9 @@ def update_texts(text_filter=None, next_version=False, texts=None):
                 # the user has used the component name parameter.
                 set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
 
-    design: adsk.fusion.Design = app_.activeProduct
-    design.computeAll()
+    if settings_[AUTOCOMPUTE_SETTING]:
+        design: adsk.fusion.Design = app_.activeProduct
+        design.computeAll()
 
 async_update_queue_ = queue.Queue()
 def update_texts_async(text_filter=None, next_version=False):
