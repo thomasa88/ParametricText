@@ -6,7 +6,7 @@
 	"description":	{
 		"":	"Allows using parameters for texts."
 	},
-	"version":	"2.0.0-beta.5",
+	"version":	"2.0.0-beta.6",
 	"runOnStartup":	true,
 	"supportedOS":	"windows|mac",
 	"editEnabled":	true
