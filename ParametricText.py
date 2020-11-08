@@ -1033,17 +1033,26 @@ def document_saving_handler(args: adsk.core.DocumentEventArgs):
 
 def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     #print(f"{NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
-    if (args.commandId in ['ChangeParameterCommand',
-                           'FusionPasteNewCommand',
-                           #'PasteCommand',
-                           'RenameCommand',
-                           'FusionRenameTimelineEntryCommand'] and
-        args.terminationReason == adsk.core.CommandTerminationReason.CompletedTerminationReason):
-        # User (might have) changed a parameter or component name
+    if args.terminationReason != adsk.core.CommandTerminationReason.CompletedTerminationReason:
+        return
 
-        # Taking action directly disturbs the Paste New command, so update_texts()
-        # must be delayed or called through update_texts_async()
+    # Taking action directly disturbs the Paste New command, so update_texts()
+    # must be delayed or called through update_texts_async().
+    # Also, call the async function to only get one Undo item.
+
+    if args.commandId == 'ChangeParameterCommand':
+        # User (might have) changed a parameter
         update_texts_async()
+    elif args.commandId == 'FusionPasteNewCommand':
+        # User pasted a component, that will have a new name
+        update_texts_async(text_filter=['_.component'])
+    elif (args.commandId in ['RenameCommand',
+                             'FusionRenameTimelineEntryCommand']):
+        # User (might have) changed a component name
+        component_selected = any(s for s in ui_.activeSelections if isinstance(s.entity, adsk.fusion.Occurrence))
+        if component_selected:
+            update_texts_async(text_filter=['_.component'])
+
 
     ### TODO: Update when user selects "Compute All"
     #elif args.commandId == 'FusionComputeAllCommand':
