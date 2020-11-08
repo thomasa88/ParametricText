@@ -93,6 +93,12 @@ class DialogState:
         self.removed_texts = []
         # Keep a list of unselects, to handle user unselecting multiple at once (window selection)
         self.pending_unselects = []
+        self.insert_button_values = []
+
+class InsertButtonValue:
+    def __init__(self, value, prepend=False):
+        self.value = value
+        self.prepend = prepend
 
 app_ = None
 ui_ = None
@@ -193,6 +199,10 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
         if not check_storage_version():
             return
 
+    # Reset dialog state
+    global dialog_state_
+    dialog_state_ = DialogState()
+
     cmd.setDialogMinimumSize(450, 200)
     cmd.setDialogInitialSize(450, 300)
 
@@ -221,22 +231,45 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     table_input.maximumVisibleRows = 10
     table_input.minimumVisibleRows = 10
 
+    # Table toolbar buttons are displayed in the order that they are added to the TableCommandInput, not the toolbar.
     table_add = table_input.commandInputs.addBoolValueInput('add_row_btn', '+', False, './resources/add', True)
     table_add.tooltip = 'Add a new row'
+    table_input.addToolbarCommandInput(table_add)
+
     table_remove = table_input.commandInputs.addBoolValueInput('remove_row_btn', '-', False, './resources/remove', True)
     table_remove.tooltip = 'Remove selected row'
+    table_input.addToolbarCommandInput(table_remove)
+
     table_button_spacer = table_input.commandInputs.addBoolValueInput('spacer', '  ', False, '', True)
     table_button_spacer.isEnabled = False
-    insert_braces = table_input.commandInputs.addBoolValueInput('insert_braces_btn', '{}', False, './resources/braces', True)
-    insert_braces.tooltip = 'Insert curly braces'
-    insert_braces.tooltipDescription = ('Inserts curly braces at the end of the text box of the currently selected row.\n\n'
-                                        'This button allows insertion of curly braces when Fusion 360™ '
-                                        'prevents insertion when using a keyboard layout that requires AltGr to be pressed.')
-    
-    table_input.addToolbarCommandInput(table_add)
-    table_input.addToolbarCommandInput(table_remove)
     table_input.addToolbarCommandInput(table_button_spacer)
-    table_input.addToolbarCommandInput(insert_braces)
+
+    add_insert_button(table_input, InsertButtonValue('{}', prepend=True), 'Prepend curly braces',
+                      'Inserts curly braces at the beginning of the text box of the currently selected row.\n\n'
+                      'This button allows insertion of curly braces when Fusion 360™ '
+                      'prevents insertion when using a keyboard layout that requires AltGr to be pressed.',
+                      different_label='{}+',
+                      evaluate=False, resourceFolder='./resources/prepend_braces')
+    add_insert_button(table_input, InsertButtonValue('{}'), 'Append curly braces',
+                      'Inserts curly braces at the end of the text box of the currently selected row.\n\n'
+                      'This button allows insertion of curly braces when Fusion 360™ '
+                      'prevents insertion when using a keyboard layout that requires AltGr to be pressed.',
+                      different_label='+{}',
+                      evaluate=False, resourceFolder='./resources/append_braces')
+    
+    table_button_spacer2 = table_input.commandInputs.addBoolValueInput('spacer2', '  ', False, '', True)
+    table_button_spacer2.isEnabled = False
+    table_input.addToolbarCommandInput(table_button_spacer2)
+
+    add_insert_button(table_input, InsertButtonValue('{_.version}'), 'Append the document version parameter.')
+    # Suggest som user parameters
+    for i, param in enumerate(reversed(design.userParameters)):
+        if i == 2:
+            break
+        add_insert_button(table_input, InsertButtonValue(f'{{{param.name}}}'),
+                          f'Append the <i>{param.name}</i> parameter, with default formatting.')
+        add_insert_button(table_input, InsertButtonValue(f'{{{param.name}:.0f}}'),
+                          f'Append the <i>{param.name}</i> parameter, with no decimals.')
     
     # The select events cannot work without having an active SelectionCommandInput
     select_input = cmd.commandInputs.addSelectionInput('select', 'Sketch Texts', '')
@@ -247,14 +280,29 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     quick_ref = table_input.commandInputs.addTextBoxCommandInput('quick_ref', '', QUICK_REF, QUICK_REF_LINES, True)
     quick_ref.isFullWidth = True
 
-    # Reset dialog state
-    global dialog_state_
-    dialog_state_ = DialogState()
-
     load(cmd)
 
     if table_input.rowCount == 0:
         add_row(table_input, get_next_id())
+
+def add_insert_button(table_input, insert_value, tooltip,
+                      tooltip_description='', evaluate=True, different_label=None,
+                      prepend=False, resourceFolder=''):
+    button_id = f'insert_btn_{len(dialog_state_.insert_button_values)}'
+    dialog_state_.insert_button_values.append(insert_value)
+    if different_label:
+        label = different_label
+    else:
+        label = insert_value.value
+
+    if evaluate:
+        ## TODO: evaluate_text should handle sketch_text=None gracefully
+        tooltip += '<br><br>Current value: ' + evaluate_text(insert_value.value, None)
+
+    button = table_input.commandInputs.addBoolValueInput(button_id, label, False, resourceFolder, True)
+    button.tooltip = tooltip
+    button.tooltipDescription = tooltip_description
+    table_input.addToolbarCommandInput(button)
 
 ### preview: executePreview show text from param.
 
@@ -272,12 +320,17 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         row = table_input.selectedRow
         if row != -1:
             remove_row(table_input, row)
-    elif args.input.id == 'insert_braces_btn':
+    elif args.input.id.startswith('insert_btn_'):
         row = table_input.selectedRow
         if row != -1:
+            insert_id = int(args.input.id.split('_')[-1])
+            insert_value = dialog_state_.insert_button_values[insert_id]
             text_id = get_text_id(table_input.getInputAtPosition(row, 0))
             value_input = table_input.commandInputs.itemById(f'value_{text_id}')
-            value_input.value += '{}'
+            if insert_value.prepend:
+                value_input.value = insert_value.value + value_input.value
+            else:
+                value_input.value += insert_value.value
     elif args.input.id.startswith('value_'):
         need_update_select_input = True
     elif args.input.id.startswith('sketchtexts_'):

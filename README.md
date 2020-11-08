@@ -143,6 +143,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
   * Show count of texts selected in each sketch.
   * Run *Compute All* automatically, to force features to update.
   * Detect missing *thomasa88lib* helper library.
+  * Quick buttons for prepending braces and appending common parameters.
 * v 1.1.0
   * `_.date` for retrieving document save date.
   * Workaround for [Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551) when using Autodesk® SHX fonts.
