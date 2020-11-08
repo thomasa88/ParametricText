@@ -32,19 +32,25 @@ import re
 
 NAME = 'ParametricText'
 
-# Must import lib as unique name, to avoid collision with other versions
-# loaded by other add-ins
-from .thomasa88lib import utils
-from .thomasa88lib import events
-#from .thomasa88lib import timeline
-from .thomasa88lib import manifest
-from .thomasa88lib import error
+try:
+    # Must import lib as unique name, to avoid collision with other versions
+    # loaded by other add-ins
+    from .thomasa88lib import utils
+    from .thomasa88lib import events
+    from .thomasa88lib import manifest
+    from .thomasa88lib import error
+except ImportError as e:
+    ui = adsk.core.Application.get().userInterface
+    ui.messageBox(f'{NAME} cannot load since thomasa88lib seems to be missing.\n\n'
+                  f'Please make sure you have installed {NAME} according to the '
+                  'installation instructions.\n\n'
+                  f'Error: {e}', f'{NAME}')
+    raise
 
 # Force modules to be fresh during development
 import importlib
 importlib.reload(thomasa88lib.utils)
 importlib.reload(thomasa88lib.events)
-#importlib.reload(thomasa88lib.timeline)
 importlib.reload(thomasa88lib.manifest)
 importlib.reload(thomasa88lib.error)
 
