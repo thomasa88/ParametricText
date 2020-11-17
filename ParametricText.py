@@ -273,10 +273,17 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     for i, param in enumerate(reversed(design.userParameters)):
         if i == 2:
             break
-        add_insert_button(table_input, InsertButtonValue(f'{{{param.name}}}'),
-                          f'Append the <i>{param.name}</i> parameter, with default formatting.')
-        add_insert_button(table_input, InsertButtonValue(f'{{{param.name}:.0f}}'),
-                          f'Append the <i>{param.name}</i> parameter, with no decimals.')
+        short_name = truncate_text(param.name, 6)
+        label = f'{{{short_name}}}'
+        insert_text = f'{{{param.name}}}'
+        add_insert_button(table_input, InsertButtonValue(insert_text),
+                          f'Append the <i>{param.name}</i> parameter, with default formatting.',
+                          different_label=label)
+        label_0f = f'{{{short_name}:.0f}}'
+        insert_text_0f = f'{{{param.name}:.0f}}'
+        add_insert_button(table_input, InsertButtonValue(insert_text_0f),
+                          f'Append the <i>{param.name}</i> parameter, with no decimals.',
+                          different_label=label_0f)
     
     # The select events cannot work without having an active SelectionCommandInput
     select_input = cmd.commandInputs.addSelectionInput('select', 'Sketch Texts', '')
@@ -295,6 +302,9 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
 
     if table_input.rowCount == 0:
         add_row(table_input, get_next_id())
+
+def truncate_text(text, length):
+    return text[0:length]
 
 def add_insert_button(table_input, insert_value, tooltip,
                       tooltip_description='', evaluate=True, different_label=None,
