@@ -55,16 +55,17 @@ The special parameter `_` gives access to special values, such as document versi
 
 The following table shows the parameter values that can be used in ParametricText. *parameter* represents any numerical parameter defined in Fusion 360™, such as `d39` or `length`.
 
-| Field Value (within `{}`)              | Description                                       | Example Result     |
-| -------------------------------------- | ------------------------------------------------- | ------------------ |
-| `_.version`                            | Document version                                  | `24`               |
-| `_.file`                               | Document filename                                 | `Crank`            |
-| `_.component`                          | Name of the component which the Sketch belongs to | `Handle`           |
-| `_.date`                               | Document save date                                | `2020-09-27`       |
-| *`parameter`* or *`parameter`*`.value` | Parameter value                                   | `10.0`             |
-| *`parameter`*`.comment`                | Parameter comment                                 | `Width of the rod` |
-| *`parameter`*`.expr`                   | Parameter expression, as entered by the user      | `5 mm + 10 mm`     |
-| *`parameter`*`.unit`                   | Parameter unit                                    | `mm`               |
+| Field Value (within `{}`)              | Description                                                  | Example Result     |
+| -------------------------------------- | ------------------------------------------------------------ | ------------------ |
+| `_.version`                            | Document version                                             | `24`               |
+| `_.file`                               | Document filename                                            | `Crank`            |
+| `_.component`                          | Name of the component which the Sketch belongs to            | `Handle`           |
+| `_.sketch`                             | Name of the sketch. Makes it possible to edit texts directly in the Browser. | `Sketch4`          |
+| `_.date`                               | Document save date                                           | `2020-09-27`       |
+| *`parameter`* or *`parameter`*`.value` | Parameter value                                              | `10.0`             |
+| *`parameter`*`.comment`                | Parameter comment                                            | `Width of the rod` |
+| *`parameter`*`.expr`                   | Parameter expression, as entered by the user                 | `5 mm + 10 mm`     |
+| *`parameter`*`.unit`                   | Parameter unit                                               | `mm`               |
 
 ### Parameter Substrings
 
@@ -107,6 +108,7 @@ The following table shows examples of using the special parameter `_`.
 | `{_.file}`              | `Crank`                                                      |
 | `{_.file} v{_.version}` | `Crank v5`                                                   |
 | `{_.component}`         | `Handle`                                                     |
+| `{_.sketch}`            | `My description`                                             |
 | `{_.date}`              | `2020-09-27` (Current date, in ISO 8601 format)              |
 | `{_.date:%m/%d/%Y}`     | `09/27/2020` (Month, day, year)                              |
 | `{_.date:%U}`           | `40` (Current week, that starts on a Sunday)                 |
@@ -157,6 +159,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 * v 2.1.0
   * Text substrings using Python slice operator.
+  * Add `_.sketch`
 * v 2.0.0
   * Rewritten selection engine.
     * Handle selection of texts in multi-occurrence components better.

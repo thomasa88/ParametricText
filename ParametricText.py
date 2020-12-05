@@ -1091,10 +1091,15 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
         update_texts_async(text_filter=['_.component'])
     elif (args.commandId in ['RenameCommand',
                              'FusionRenameTimelineEntryCommand']):
-        # User (might have) changed a component name
-        component_selected = any(s for s in ui_.activeSelections if isinstance(s.entity, adsk.fusion.Occurrence))
-        if component_selected:
-            update_texts_async(text_filter=['_.component'])
+        # User might have changed a component or sketch name
+        text_filter = set()
+        for selection in ui_.activeSelections:
+            if isinstance(selection.entity, adsk.fusion.Occurrence):
+                text_filter.add('_.component')
+            elif isinstance(selection.entity, adsk.fusion.Sketch):
+                text_filter.add('_.sketch')
+        if text_filter:
+            update_texts_async(text_filter=['_.component', '_.sketch'])
 
 
     ### TODO: Update when user selects "Compute All"
