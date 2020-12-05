@@ -25,7 +25,7 @@ Make sure the directory is named `ParametricText`, with no suffix.
 
 Please see the [Demo video](https://knowledge.autodesk.com/support/fusion-360/learn-explore/caas/screencast/Main/Details/3d4a64a7-37b3-4551-83c4-a93a4d96bca7.html) for a quick overview of ParametricText.
 
-To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select. Also, since Fusion 360™ resets some parameters when a text is modified by an add-in, it is recommended to not position the text in any way until it has been assigned a text parameter.
+To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select. Also, since Fusion 360™ resets some text settings when a text is modified by an add-in, it is recommended to not position the text in any way until it has been assigned a text parameter.
 
 Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Parameters*.
 
@@ -66,17 +66,35 @@ The following table shows the parameter values that can be used in ParametricTex
 | *`parameter`*`.expr`                   | Parameter expression, as entered by the user      | `5 mm + 10 mm`     |
 | *`parameter`*`.unit`                   | Parameter unit                                    | `mm`               |
 
+### Parameter Substrings
+
+Parameter values that are textual (`_.file`, `_.component`, *`parameter`*`.comment`) can be cut into substrings using the Python slice notation: `[start:stop]` (the `step` option is not supported).
+
+The range is left-inclusive and right-exclusive, meaning that a range of `[2:4]` will give the characters at index `2` and `3`, but not `4`.
+
+The character position is zero-indexed, which means that the first character will be number `0`.
+
+Note: The length of numberic parameters can be adjusted using the Python Format Specifiers, as shown in a later section.
+
+| Field Value (within `{}`)    | Description                                           | Example Result |
+| ---------------------------- | ----------------------------------------------------- | -------------- |
+| `_.file[0:3]`                | First three characters (0 through 2) of the filename. | `Cra`          |
+| `_.component[2]`             | Character `2` (the third character in the string)     | `n`            |
+| *`parameter`*`.comment[-3:]` | The last three characters of the parameter comment    | `rod`          |
+| *`parameter`*`.comment[6:]`  | All characters from index `6`.                        | `of the rod`   |
+
 ### Parameter Usage Examples
 
 The following table shows examples on how to access values and format parameters.
 
-| Value                | Result                                            |
-| -------------------- | ------------------------------------------------- |
-| `{d1:.3f} {d1.unit}` | `15.000 mm` (3 decimal places)                    |
-| `{d1:03.0f}`         | `015` (Float/decimal zero-padded to three digits) |
-| `{width:.0f}`        | `6` (No decimal places)                           |
-| `{width.expr}`       | `6 mm`                                            |
-| `{height.expr}`      | `2 mm + width`                                    |
+| Value                   | Result                                            |
+| ----------------------- | ------------------------------------------------- |
+| `{d1:.3f} {d1.unit}`    | `15.000 mm` (3 decimal places)                    |
+| `{d1:03.0f}`            | `015` (Float/decimal zero-padded to three digits) |
+| `{width:.0f}`           | `6` (No decimal places)                           |
+| `{width.expr}`          | `6 mm`                                            |
+| `{height.expr}`         | `2 mm + width`                                    |
+| `{height.comment}[0:5]` | `The h`                                           |
 
 ### Special Parameter Usage Examples
 
@@ -137,6 +155,8 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
+* v 2.1.0
+  * Text substrings using Python slice operator.
 * v 2.0.0
   * Rewritten selection engine.
     * Handle selection of texts in multi-occurrence components better.

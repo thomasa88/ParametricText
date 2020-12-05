@@ -56,6 +56,8 @@ importlib.reload(thomasa88lib.manifest)
 importlib.reload(thomasa88lib.error)
 importlib.reload(thomasa88lib.settings)
 
+from . import paramparser
+
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
 UPDATE_CMD_ID = 'thomasa88_ParametricText_Update'
@@ -701,9 +703,30 @@ def evaluate_text(text, sketch_text, next_version=False):
     def sub_func(subst_match):
         # https://www.python.org/dev/peps/pep-3101/
         # https://docs.python.org/3/library/string.html#formatspec
-        var, options_sep, options = subst_match.group(1).partition(':')
 
-        var_name, member_sep, member = var.partition('.')
+        param_string = subst_match.group(1)
+        param_spec = paramparser.ParamSpec.from_string(param_string)
+
+        if not param_spec:
+            return f'<Cannot parse: {param_string}>'
+        
+        var_name = param_spec.var
+        options = param_spec.format
+
+        if options:
+            options_sep = ':'
+        else:
+            options_sep = ''
+            options = ''
+
+        member = param_spec.member
+        if member:
+            member_sep = '.'
+        else:
+            member_sep = ''
+            member = ''
+
+        string_value = False
 
         if var_name == '_':
             if member == 'version':
@@ -749,6 +772,7 @@ def evaluate_text(text, sketch_text, next_version=False):
                 component_name = sketch_text.parentSketch.parentComponent.name
                 component_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', component_name)
                 value = component_name
+                string_value = True
             elif member == 'file':
                 ### Can we handle "Save as" or document copying?
                 # activeDocument.name and activeDocument.dataFile.name gives us the same
@@ -761,9 +785,11 @@ def evaluate_text(text, sketch_text, next_version=False):
                 # Strip the suffix
                 document_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', document_name)
                 value = document_name
+                string_value = True
             elif member == 'sketch':
                 ### Is this useful? Let's users edit the texts directly in the Browser or Timeline, I guess.
                 value = sketch_text.parentSketch.name
+                string_value = True
             else:
                 return f'<Unknown member of {var_name}: {member}>'
         else:
@@ -780,13 +806,20 @@ def evaluate_text(text, sketch_text, next_version=False):
                     value = design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit)
             elif member == 'comment':
                 value = param.comment
+                string_value = True
             elif member == 'expr':
                 value = param.expression
             elif member == 'unit':
                 value = param.unit
             else:
                 return f'<Unknown member of {var_name}: {member}>'
-            
+
+        if param_spec.slice:
+            if string_value:
+                value = value[param_spec.slice]
+            else:
+                return f'<Cannot substring number: {var_name}{member_sep}{member}>'
+
         try:
             formatted_str = ('{' + options_sep + options + '}').format(value)
         except ValueError as e:
