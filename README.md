@@ -119,7 +119,6 @@ The following table shows examples of using the special parameter `_`.
 
 ## Known Limitations
 
-* Using SHX fonts results in errors since Fusion 360™ version 2.0.9142 ([Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551)).
 * *Compute All* does currently not update the text parameters.
 * `{` and `}` cannot be entered in string inputs in Fusion 360™ on keyboards where they require *Alt Gr* to be pressed.
   * Workaround is to use the `{}` button.
