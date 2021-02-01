@@ -654,11 +654,14 @@ def remove_attributes(text_id):
     if value_attr:
         value_attr.deleteMe()
 
+# Tries to update the given SketchText, if the text value has changed.
+# Returns True if the supplied text value differed from the old value.
 def set_sketch_text(sketch_text, text):
     try:
         # Avoid triggering computations and undo history for unchanged texts
-        if sketch_text.text != text:
-            sketch_text.text = text
+        if sketch_text.text == text:
+            return False
+        sketch_text.text = text
     except RuntimeError as e:
         msg = None
         if len(e.args) > 0:
@@ -695,6 +698,7 @@ def set_sketch_text(sketch_text, text):
                             'See add-in help document/README for more information.',
                             f'{NAME} v {manifest_["version"]}')
             # Unhook the text from the text parameter?
+    return True
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
@@ -1112,17 +1116,29 @@ def update_texts(text_filter=None, next_version=False, texts=None):
         return
 
     if not texts:
+        # No cached map of texts was provided. Let's build it.
         texts = get_texts()
+
+    if not texts:
+        # There are no texts in this document. Skip all processing.
+        return
+
+    update_count = 0
     for text_id, text_info in texts.items():
         text = text_info.text_value
         if not text_filter or [filter_value for filter_value in text_filter if filter_value in text]:
             for sketch_text in text_info.sketch_texts:
                 # Must evaluate for every sketch for every text, in case
                 # the user has used the component name parameter.
-                set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
+                text_updated = set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
+                if text_updated:
+                    update_count += 1
 
-    if settings_[AUTOCOMPUTE_SETTING]:
-        design: adsk.fusion.Design = app_.activeProduct
+    design: adsk.fusion.Design = app_.activeProduct
+    # It is illegal to do "Compute All" in a non-parametric design.
+    if (update_count > 0 and
+        design.designType == adsk.fusion.DesignTypes.ParametricDesignType and
+        settings_[AUTOCOMPUTE_SETTING]):
         design.computeAll()
 
 async_update_queue_ = queue.Queue()
