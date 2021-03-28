@@ -25,7 +25,7 @@ Make sure the directory is named `ParametricText`, with no suffix.
 
 Please see the [Demo video](https://knowledge.autodesk.com/support/fusion-360/learn-explore/caas/screencast/Main/Details/3d4a64a7-37b3-4551-83c4-a93a4d96bca7.html) for a quick overview of ParametricText.
 
-To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select. Also, since Fusion 360™ resets some parameters when a text is modified by an add-in, it is recommended to not position the text in any way until it has been assigned a text parameter.
+To parameterize texts, create sketches with Text features. Make sure to enter some dummy text, to make the Text features easier to select. Also, since Fusion 360™ resets some text settings when a text is modified by an add-in, it is recommended to not position the text in any way until it has been assigned a text parameter.
 
 Open the *Modify* menu under e.g. the *SOLID* tab and click *Change Text Parameters*.
 
@@ -55,28 +55,47 @@ The special parameter `_` gives access to special values, such as document versi
 
 The following table shows the parameter values that can be used in ParametricText. *parameter* represents any numerical parameter defined in Fusion 360™, such as `d39` or `length`.
 
-| Field Value (within `{}`)              | Description                                       | Example Result     |
-| -------------------------------------- | ------------------------------------------------- | ------------------ |
-| `_.version`                            | Document version                                  | `24`               |
-| `_.file`                               | Document filename                                 | `Crank`            |
-| `_.component`                          | Name of the component which the Sketch belongs to | `Handle`           |
-| `_.date`                               | Document save date                                | `2020-09-27`       |
-| *`parameter`* or *`parameter`*`.value` | Parameter value                                   | `10.0`             |
-| *`parameter`*`.comment`                | Parameter comment                                 | `Width of the rod` |
-| *`parameter`*`.expr`                   | Parameter expression, as entered by the user      | `5 mm + 10 mm`     |
-| *`parameter`*`.unit`                   | Parameter unit                                    | `mm`               |
+| Field Value (within `{}`)              | Description                                                  | Example Result     |
+| -------------------------------------- | ------------------------------------------------------------ | ------------------ |
+| `_.version`                            | Document version                                             | `24`               |
+| `_.file`                               | Document filename                                            | `Crank`            |
+| `_.component`                          | Name of the component which the Sketch belongs to            | `Handle`           |
+| `_.sketch`                             | Name of the sketch. Makes it possible to edit texts directly in the Browser. | `Sketch4`          |
+| `_.date`                               | Document save date                                           | `2020-09-27`       |
+| *`parameter`* or *`parameter`*`.value` | Parameter value                                              | `10.0`             |
+| *`parameter`*`.comment`                | Parameter comment                                            | `Width of the rod` |
+| *`parameter`*`.expr`                   | Parameter expression, as entered by the user                 | `5 mm + 10 mm`     |
+| *`parameter`*`.unit`                   | Parameter unit                                               | `mm`               |
+
+### Parameter Substrings
+
+Parameter values that are textual (`_.file`, `_.component`, *`parameter`*`.comment`) can be cut into substrings using the Python slice notation: `[start:stop]` (the `step` option is not supported).
+
+The range is left-inclusive and right-exclusive, meaning that a range of `[2:4]` will give the characters at index `2` and `3`, but not `4`.
+
+The character position is zero-indexed, which means that the first character will be number `0`.
+
+Note: The length of numberic parameters can be adjusted using the Python Format Specifiers, as shown in a later section.
+
+| Field Value (within `{}`)    | Description                                           | Example Result |
+| ---------------------------- | ----------------------------------------------------- | -------------- |
+| `_.file[0:3]`                | First three characters (0 through 2) of the filename. | `Cra`          |
+| `_.component[2]`             | Character `2` (the third character in the string)     | `n`            |
+| *`parameter`*`.comment[-3:]` | The last three characters of the parameter comment    | `rod`          |
+| *`parameter`*`.comment[6:]`  | All characters from index `6`.                        | `of the rod`   |
 
 ### Parameter Usage Examples
 
 The following table shows examples on how to access values and format parameters.
 
-| Value                | Result                                            |
-| -------------------- | ------------------------------------------------- |
-| `{d1:.3f} {d1.unit}` | `15.000 mm` (3 decimal places)                    |
-| `{d1:03.0f}`         | `015` (Float/decimal zero-padded to three digits) |
-| `{width:.0f}`        | `6` (No decimal places)                           |
-| `{width.expr}`       | `6 mm`                                            |
-| `{height.expr}`      | `2 mm + width`                                    |
+| Value                   | Result                                            |
+| ----------------------- | ------------------------------------------------- |
+| `{d1:.3f} {d1.unit}`    | `15.000 mm` (3 decimal places)                    |
+| `{d1:03.0f}`            | `015` (Float/decimal zero-padded to three digits) |
+| `{width:.0f}`           | `6` (No decimal places)                           |
+| `{width.expr}`          | `6 mm`                                            |
+| `{height.expr}`         | `2 mm + width`                                    |
+| `{height.comment}[0:5]` | `The h`                                           |
 
 ### Special Parameter Usage Examples
 
@@ -89,6 +108,7 @@ The following table shows examples of using the special parameter `_`.
 | `{_.file}`              | `Crank`                                                      |
 | `{_.file} v{_.version}` | `Crank v5`                                                   |
 | `{_.component}`         | `Handle`                                                     |
+| `{_.sketch}`            | `My description`                                             |
 | `{_.date}`              | `2020-09-27` (Current date, in ISO 8601 format)              |
 | `{_.date:%m/%d/%Y}`     | `09/27/2020` (Month, day, year)                              |
 | `{_.date:%U}`           | `40` (Current week, that starts on a Sunday)                 |
@@ -99,7 +119,6 @@ The following table shows examples of using the special parameter `_`.
 
 ## Known Limitations
 
-* Using SHX fonts results in errors since Fusion 360™ version 2.0.9142 ([Fusion 360™ bug](https://forums.autodesk.com/t5/fusion-360-api-and-scripts/cannot-select-shx-fonts-on-sketchtext-object/m-p/9606551)).
 * *Compute All* does currently not update the text parameters.
 * `{` and `}` cannot be entered in string inputs in Fusion 360™ on keyboards where they require *Alt Gr* to be pressed.
   * Workaround is to use the `{}` button.
@@ -137,6 +156,11 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
+* v 2.1.0
+  * Fix Fusion 360 crash in non-parametric mode, by not calling *Compute All* in non-parametric mode.
+  * Only run automatic *Compute All* if there are any text parameters that have been updated.
+  * Text substrings using Python slice operator.
+  * Add `_.sketch`
 * v 2.0.0
   * Rewritten selection engine.
     * Handle selection of texts in multi-occurrence components better.

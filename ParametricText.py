@@ -56,6 +56,8 @@ importlib.reload(thomasa88lib.manifest)
 importlib.reload(thomasa88lib.error)
 importlib.reload(thomasa88lib.settings)
 
+from . import paramparser
+
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
 UPDATE_CMD_ID = 'thomasa88_ParametricText_Update'
@@ -652,11 +654,14 @@ def remove_attributes(text_id):
     if value_attr:
         value_attr.deleteMe()
 
+# Tries to update the given SketchText, if the text value has changed.
+# Returns True if the supplied text value differed from the old value.
 def set_sketch_text(sketch_text, text):
     try:
         # Avoid triggering computations and undo history for unchanged texts
-        if sketch_text.text != text:
-            sketch_text.text = text
+        if sketch_text.text == text:
+            return False
+        sketch_text.text = text
     except RuntimeError as e:
         msg = None
         if len(e.args) > 0:
@@ -693,6 +698,7 @@ def set_sketch_text(sketch_text, text):
                             'See add-in help document/README for more information.',
                             f'{NAME} v {manifest_["version"]}')
             # Unhook the text from the text parameter?
+    return True
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
@@ -701,9 +707,30 @@ def evaluate_text(text, sketch_text, next_version=False):
     def sub_func(subst_match):
         # https://www.python.org/dev/peps/pep-3101/
         # https://docs.python.org/3/library/string.html#formatspec
-        var, options_sep, options = subst_match.group(1).partition(':')
 
-        var_name, member_sep, member = var.partition('.')
+        param_string = subst_match.group(1)
+        param_spec = paramparser.ParamSpec.from_string(param_string)
+
+        if not param_spec:
+            return f'<Cannot parse: {param_string}>'
+        
+        var_name = param_spec.var
+        options = param_spec.format
+
+        if options:
+            options_sep = ':'
+        else:
+            options_sep = ''
+            options = ''
+
+        member = param_spec.member
+        if member:
+            member_sep = '.'
+        else:
+            member_sep = ''
+            member = ''
+
+        string_value = False
 
         if var_name == '_':
             if member == 'version':
@@ -749,6 +776,7 @@ def evaluate_text(text, sketch_text, next_version=False):
                 component_name = sketch_text.parentSketch.parentComponent.name
                 component_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', component_name)
                 value = component_name
+                string_value = True
             elif member == 'file':
                 ### Can we handle "Save as" or document copying?
                 # activeDocument.name and activeDocument.dataFile.name gives us the same
@@ -761,9 +789,11 @@ def evaluate_text(text, sketch_text, next_version=False):
                 # Strip the suffix
                 document_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', document_name)
                 value = document_name
+                string_value = True
             elif member == 'sketch':
                 ### Is this useful? Let's users edit the texts directly in the Browser or Timeline, I guess.
                 value = sketch_text.parentSketch.name
+                string_value = True
             else:
                 return f'<Unknown member of {var_name}: {member}>'
         else:
@@ -780,13 +810,20 @@ def evaluate_text(text, sketch_text, next_version=False):
                     value = design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit)
             elif member == 'comment':
                 value = param.comment
+                string_value = True
             elif member == 'expr':
                 value = param.expression
             elif member == 'unit':
                 value = param.unit
             else:
                 return f'<Unknown member of {var_name}: {member}>'
-            
+
+        if param_spec.slice:
+            if string_value:
+                value = value[param_spec.slice]
+            else:
+                return f'<Cannot substring number: {var_name}{member_sep}{member}>'
+
         try:
             formatted_str = ('{' + options_sep + options + '}').format(value)
         except ValueError as e:
@@ -1058,10 +1095,15 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
         update_texts_async(text_filter=['_.component'])
     elif (args.commandId in ['RenameCommand',
                              'FusionRenameTimelineEntryCommand']):
-        # User (might have) changed a component name
-        component_selected = any(s for s in ui_.activeSelections if isinstance(s.entity, adsk.fusion.Occurrence))
-        if component_selected:
-            update_texts_async(text_filter=['_.component'])
+        # User might have changed a component or sketch name
+        text_filter = set()
+        for selection in ui_.activeSelections:
+            if isinstance(selection.entity, adsk.fusion.Occurrence):
+                text_filter.add('_.component')
+            elif isinstance(selection.entity, adsk.fusion.Sketch):
+                text_filter.add('_.sketch')
+        if text_filter:
+            update_texts_async(text_filter=['_.component', '_.sketch'])
 
 
     ### TODO: Update when user selects "Compute All"
@@ -1074,17 +1116,29 @@ def update_texts(text_filter=None, next_version=False, texts=None):
         return
 
     if not texts:
+        # No cached map of texts was provided. Let's build it.
         texts = get_texts()
+
+    if not texts:
+        # There are no texts in this document. Skip all processing.
+        return
+
+    update_count = 0
     for text_id, text_info in texts.items():
         text = text_info.text_value
         if not text_filter or [filter_value for filter_value in text_filter if filter_value in text]:
             for sketch_text in text_info.sketch_texts:
                 # Must evaluate for every sketch for every text, in case
                 # the user has used the component name parameter.
-                set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
+                text_updated = set_sketch_text(sketch_text, evaluate_text(text, sketch_text, next_version))
+                if text_updated:
+                    update_count += 1
 
-    if settings_[AUTOCOMPUTE_SETTING]:
-        design: adsk.fusion.Design = app_.activeProduct
+    design: adsk.fusion.Design = app_.activeProduct
+    # It is illegal to do "Compute All" in a non-parametric design.
+    if (update_count > 0 and
+        design.designType == adsk.fusion.DesignTypes.ParametricDesignType and
+        settings_[AUTOCOMPUTE_SETTING]):
         design.computeAll()
 
 async_update_queue_ = queue.Queue()
