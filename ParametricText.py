@@ -1106,9 +1106,15 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
         # User might have changed a component or sketch name
         text_filter = set()
         for selection in ui_.activeSelections:
-            if isinstance(selection.entity, adsk.fusion.Occurrence):
+            # Getting "RuntimeError: 3 : object is invalid" if we try to get the entity
+            # for selection of some features/objects.
+            try:
+                entity = selection.entity
+            except RuntimeError:
+                continue
+            if isinstance(entity, adsk.fusion.Occurrence):
                 text_filter.add('_.component')
-            elif isinstance(selection.entity, adsk.fusion.Sketch):
+            elif isinstance(entity, adsk.fusion.Sketch):
                 text_filter.add('_.sketch')
         if text_filter:
             update_texts_async(text_filter=['_.component', '_.sketch'])
