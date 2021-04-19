@@ -1,0 +1,22 @@
+{%- extends "sphinx_rtd_theme/layout.html" %}
+
+{% block navigation %}
+{{ super() }}
+
+<style>
+  .badge-item {
+      padding: .4045em 1.618em;
+      font-size: 90%;
+      margin-top: 25px;
+      line-height: 18px;
+  }
+</style>
+
+{# App store badge #}
+<div class="badge-item">
+  <a href="https://apps.autodesk.com/FUSION/en/Detail/Index?id=2114937992453312456&amp;appLang=en&amp;os=Win64" target="_blank" title="Open in App store">
+    <img src="https://badgen.net/runkit/thomasa88/autodesk-rating-badge/branches/master/2114937992453312456">
+  </a>
+</div>
+
+{% endblock %}

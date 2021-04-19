@@ -1,0 +1,14 @@
+.kbd:not(.compound) {
+    padding: .2rem .4rem;
+    font-size: 87.5%;
+    border-radius: .2rem;
+    color: #212121;
+    background-color: #f2f2f2;
+    border: 1px solid #cbcbcb;
+    box-shadow: 0 2px 4px 0 rgba(0,0,0,0.2),inset 0 0 0 2px #fff;
+}
+
+.guilabel {
+    background-color: initial !important;
+    border-color: #888 !important;
+}

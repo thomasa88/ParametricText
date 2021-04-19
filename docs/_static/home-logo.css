@@ -1,0 +1,13 @@
+.icon-home::before {
+    display: inline-block;
+    content: "";
+    width: 32px;
+    height: 32px;
+    background: url(logo.svg);
+    position: relative;
+    top: 10px;
+}
+
+.wy-side-nav-search .icon-home::before {
+    margin-left: -16px;
+}
