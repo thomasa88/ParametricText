@@ -156,9 +156,9 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 ## Changelog
 
-* v 2.1.1
-  * Workaround for Fusion 360™ giving error when inspecting some selections, which broke the name tracking for `_.component`, `_.file` and `_.sketch`.
-    
+* v 2.2.0
+  * Workaround for Fusion 360™ giving error when inspecting some selections, which broke the name tracking for `_.component`, `_.file` and `_.sketch`.  
+  * Do not show an add-in error when *Compute All* fails. Instead, show an error notification.
 * v 2.1.0
   * Fix Fusion 360 crash in non-parametric mode, by not calling *Compute All* in non-parametric mode.
   * Only run automatic *Compute All* if there are any text parameters that have been updated.
