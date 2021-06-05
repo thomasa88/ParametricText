@@ -61,6 +61,7 @@ from . import paramparser
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
 UPDATE_CMD_ID = 'thomasa88_ParametricText_Update'
+ERROR_CMD_ID = 'thomasa88_ParametricText_ErrorNotification'
 PANEL_IDS = [
             'SketchModifyPanel',
             'SolidModifyPanel',
@@ -179,6 +180,13 @@ def run(context):
         update_cmd_def = ui_.commandDefinitions.addButtonDefinition(UPDATE_CMD_ID, 'Calculate Text Parameters', '')
         events_manager_.add_handler(update_cmd_def.commandCreated,
                                     callback=update_cmd_created_handler)
+
+        error_cmd_def = ui_.commandDefinitions.itemById(ERROR_CMD_ID)
+        if error_cmd_def:
+            error_cmd_def.deleteMe()
+        error_cmd_def = ui_.commandDefinitions.addButtonDefinition(ERROR_CMD_ID, 'Show error', '')
+        events_manager_.add_handler(error_cmd_def.commandCreated,
+                                    callback=error_cmd_created_handler)
 
         if app_.isStartupComplete and is_design_workspace():
             # Add-in was (re)loaded while Fusion 360 was running
@@ -1111,6 +1119,7 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     #    load()
     #    save()
 
+# NOTE: This function might be called from inside a command
 def update_texts(text_filter=None, next_version=False, texts=None):
     if not enabled_:
         return
@@ -1139,7 +1148,17 @@ def update_texts(text_filter=None, next_version=False, texts=None):
     if (update_count > 0 and
         design.designType == adsk.fusion.DesignTypes.ParametricDesignType and
         settings_[AUTOCOMPUTE_SETTING]):
-        design.computeAll()
+        try:
+            design.computeAll()
+        except RuntimeError as e:
+            if e.args and 'Compute Failed' in e.args[0]:
+                msg = f'Compute all, triggered by {NAME} v {manifest_["version"]}, failed:<br>\n<br>\n'
+                msg += e.args[0].replace('5 : ', '').replace('\n', '<br>\n')
+                # Putting the call at the end of the event queue, to not abort
+                # any command that called this function.
+                events_manager_.delay(lambda: show_error_notification(msg))
+            else:
+                raise
 
 async_update_queue_ = queue.Queue()
 def update_texts_async(text_filter=None, next_version=False):
@@ -1161,3 +1180,29 @@ def update_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
 
 def update_cmd_execute_handler(args: adsk.core.CommandEventArgs):
     update_texts(*async_update_queue_.get())
+
+error_notification_msg_ = None
+def show_error_notification(msg):
+    '''Show an error notification.
+
+    Note: The notification and the "More info" dialog renders HTML newlines (<br>),
+          while the tooltip, when doing mouse-over on the red sign at the lower
+          right, uses the newline character (\n).
+    '''
+    # Passing the message in the tooltip did not work (the event queue
+    # needs to spin?). Using a global variable instead.
+    global error_notification_msg_
+    error_notification_msg_ = msg
+
+    error_cmd_def = ui_.commandDefinitions.itemById(ERROR_CMD_ID)
+    error_cmd_def.execute()
+
+def error_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+    cmd = args.command
+    cmd.isAutoExecute = True
+    cmd.isRepeatable = False
+    events_manager_.add_handler(cmd.execute, callback=error_cmd_execute_handler)
+
+def error_cmd_execute_handler(args: adsk.core.CommandEventArgs):
+    args.executeFailed = True
+    args.executeFailedMessage = error_notification_msg_
