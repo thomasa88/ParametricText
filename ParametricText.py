@@ -111,8 +111,11 @@ app_ = None
 ui_ = None
 
 manifest_ = thomasa88lib.manifest.read()
+
+NAME_VERSION = f'{NAME} v {manifest_["version"]}'
+
 error_catcher_ = thomasa88lib.error.ErrorCatcher(msgbox_in_debug=False,
-                                                 msg_prefix=f'{NAME} v {manifest_["version"]}')
+                                                 msg_prefix=NAME_VERSION)
 events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
 settings_ = thomasa88lib.settings.SettingsManager({
     AUTOCOMPUTE_SETTING: True
@@ -156,7 +159,7 @@ def run(context):
                                                                  f'Change Text Parameters',            
                                                                  'Displays the Text Parameters dialog box.\n\n'
                                                                  'Assign and edit sketch text parameters.\n\n'
-                                                                  f'({NAME} v {manifest_["version"]})',
+                                                                  f'({NAME_VERSION})',
                                                                   './resources/text_parameter')
         events_manager_.add_handler(map_cmd_def.commandCreated,
                                     callback=map_cmd_created_handler)
@@ -504,7 +507,7 @@ def find_equal_sketch_text(in_sketch, sketch_text):
     else:
         ui_.messageBox(f'Failed to translate sketch text proxy (component instance) to native text object.\n\n'
                         'Please inform the developer of what steps you performed to trigger this error.',
-                        f'{NAME} v {manifest_["version"]}')
+                        NAME_VERSION)
     return in_sketch.sketchTexts.item(text_index)
 
 def set_row_sketch_texts_text(sketch_texts_input, sketch_texts):
@@ -645,7 +648,7 @@ def save_next_id():
     if next_id is None:
         ui_.messageBox(f'Failed to save text ID counter. Save failed.\n\n'
                        'Please inform the developer of the steps you performed to trigger this error.',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         return False
     design.attributes.add(ATTRIBUTE_GROUP, 'nextId', str(next_id))
     dialog_next_id_ = None
@@ -693,7 +696,7 @@ def set_sketch_text(sketch_text, text):
                                 'due to the text having an SHX font. This bug was introduced by Fusion 360™ version 2.0.9142.\n\n'
                                 'Please change the text to not have an SHX font or remove it from the paremeter list.\n\n'
                                 'See add-in help document/README for more information.',
-                                f'{NAME} v {manifest_["version"]}')
+                                NAME_VERSION)
                 # Unhook the text from the text parameter?
         elif msg == '3 : invalid input angle':
             # Negative angle bug. Cannot set text when the angle is negative.
@@ -704,7 +707,7 @@ def set_sketch_text(sketch_text, text):
                             'due to the text having a negative angle.\n\n'
                             'Please edit the text to have a positive angle (add 360 degrees to the current angle).\n\n'
                             'See add-in help document/README for more information.',
-                            f'{NAME} v {manifest_["version"]}')
+                            NAME_VERSION)
             # Unhook the text from the text parameter?
     return True
 
@@ -744,7 +747,7 @@ def evaluate_text(text, sketch_text, next_version=False):
             if member == 'version':
                 # No version information available if the document is not saved
                 if app_.activeDocument.isSaved:
-                    version = app_.activeDocument.dataFile.versionNumber
+                    version = get_data_file().versionNumber
                 else:
                     version = 0
                 if next_version:
@@ -767,7 +770,7 @@ def evaluate_text(text, sketch_text, next_version=False):
                     # save.
                     save_time = datetime.datetime.now(tz=datetime.timezone.utc)
                 elif app_.activeDocument.isSaved:
-                    unix_time_utc = app_.activeDocument.dataFile.dateCreated
+                    unix_time_utc = get_data_file().dateCreated
                     save_time = datetime.datetime.fromtimestamp(unix_time_utc,
                                                                 tz=datetime.timezone.utc)
                 else:
@@ -840,6 +843,77 @@ def evaluate_text(text, sketch_text, next_version=False):
 
     shown_text = SUBST_PATTERN.sub(sub_func, text)
     return shown_text
+
+def get_data_file():
+    '''Wrapper for ActiveDocument.DataFile that tries to download the
+    data from the cloud if it is not already cached.
+    '''
+    data_file, probe_error = probe_data_file()
+    if data_file:
+        return data_file
+
+    # It looks like Fusion 360 has not downloaded the cloud data for this file,
+    # either because it was opened through "Editable Documents" or as a sub-assembly
+    # through another file, without opening t the file's folder.
+    # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/error-retrieving-datafile-in-unopened-folder/m-p/8384143#M6854
+    
+    # Trigger download of Editable Documents data
+    if app_.data.personalUseLimits:
+        app_.data.personalUseLimits.editableFiles
+    
+    data_file, probe_error = probe_data_file()
+    if data_file:
+        return data_file
+
+    # Trigger download data for all documents
+    progress = ui_.createProgressDialog()
+    progress.isCancelButtonShown = True
+    projects = app_.data.dataProjects
+    base_msg = ("Cannot determine document's project (The folder has likely not been opened).\n"
+                "Scanning for missing metadata.\n\n")
+    progress.show(NAME_VERSION, base_msg, 0, projects.count, 0)
+    for i, p in enumerate(projects):
+        progress.message = f"{base_msg}Scanning project \"{p.name}\""
+        if progress.wasCancelled:
+            break
+
+        cache_data_folder(p.rootFolder)
+        
+        progress.progressValue = i + 1
+
+        data_file, probe_error = probe_data_file()
+        if data_file:
+            break
+
+    progress.hide()
+    
+    if data_file:
+        return data_file
+
+    raise probe_error
+
+def cache_data_folder(folder):
+    '''Forces Fusion 360 to download metadata for all documents in
+    the given folder.
+    
+    Note: Fusion 360 will always try to fetch new data, even though
+          it has data cached.
+    '''
+    for child_df in folder.dataFiles:
+        # This forces Fusion 360 to download and cache the DataFile
+        child_df.id
+    for child_folder in folder.dataFolders:
+        cache_data_folder(child_folder)
+
+def probe_data_file():
+    try:
+        return app_.activeDocument.dataFile, None
+    except RuntimeError as e:
+        if e.args and e.args[0].startswith('2 : InternalValidationError : dataFile'):
+            # DataFile is currently not cached
+            return None, e
+        else:
+            raise
 
 def load(cmd):
     global dialog_selection_map_
@@ -933,7 +1007,7 @@ def check_storage_version():
                              'The text parameters will be converted to the new storage format.\n\n'
                              f'If you proceed, the document will no longer work with the older version of {NAME}. '
                              f'If you cancel, you will not be able to update the text parameters using this version of {NAME}.',
-                             f'{NAME} v {manifest_["version"]}',
+                             NAME_VERSION,
                              adsk.core.MessageBoxButtonTypes.OKCancelButtonType)
         if ret == adsk.core.DialogResults.DialogOK:
             migrate_storage_async(file_db_version, STORAGE_VERSION)
@@ -947,14 +1021,14 @@ def check_storage_version():
         ui_.messageBox(f'This document has text parameters created with a newer storage format version ({file_db_version}), '
                        f'which is not compatible with this version of {NAME} ({STORAGE_VERSION}).\n\n'
                        f'You will need to update {NAME} to be able to update the text parameters.',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         disable_addin()
     else:
         ui_.messageBox(f'This document has text parameters created with unknown storage format version ({file_db_version}).\n\n'
                        f'You will not be able to update the text parameters.\n\n'
                        f'Please report this to the developer. It is recommended that you restore an old version '
                        f'of your document.',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         disable_addin()
     return False
 
@@ -1010,7 +1084,7 @@ def migrate_cmd_execute_handler(args: adsk.core.CommandEventArgs):
         save_storage_version()
     else:
         ui_.messageBox('Cannot migrate from storage version {from_version} to {to_version}!',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         disable_addin()
         return
 
@@ -1158,7 +1232,7 @@ def update_texts(text_filter=None, next_version=False, texts=None):
             design.computeAll()
         except RuntimeError as e:
             if e.args and 'Compute Failed' in e.args[0]:
-                msg = f'Compute all, triggered by {NAME} v {manifest_["version"]}, failed:<br>\n<br>\n'
+                msg = f'Compute all, triggered by {NAME_VERSION}, failed:<br>\n<br>\n'
                 msg += e.args[0].replace('5 : ', '').replace('\n', '<br>\n')
                 # Putting the call at the end of the event queue, to not abort
                 # any command that called this function.
