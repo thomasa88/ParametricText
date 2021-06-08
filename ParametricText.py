@@ -26,9 +26,11 @@
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from collections import defaultdict
+import enum
 import datetime
 import queue
 import re
+import math
 
 NAME = 'ParametricText'
 
@@ -89,10 +91,6 @@ ATTRIBUTE_GROUP = 'thomasa88_ParametricText'
 
 AUTOCOMPUTE_SETTING = 'autocompute'
 
-class SelectAction:
-    Select = 1
-    Unselect = 2
-
 class DialogState:
     def __init__(self):
         self.last_selected_row = None
@@ -138,6 +136,13 @@ dialog_state_ = None
 
 # Flag to disable add-in if there are storage mismatches.
 enabled_ = True
+
+class WorkaroundState(enum.Enum):
+    Check = 0
+    Enabled = 1
+    Disabled = 2
+
+text_height_workaround_state_ = WorkaroundState.Check
 
 def run(context):
     global app_
@@ -672,7 +677,29 @@ def set_sketch_text(sketch_text, text):
         # Avoid triggering computations and undo history for unchanged texts
         if sketch_text.text == text:
             return False
+        
+        # Changing any SketchText property resets the text height
+        # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-setting-sketchtext-properties-resets-text-height-since-v-2-0/m-p/10357593
+        # The only way to restore the height of a text is by setting its ModelParameter
+        # However, there is no accessible mapping between SketchText and the parameter,
+        # so we save the component's model parameters and restore the one that has been changed,
+        # in case it has been changed.
+
+        check_text_height_bug(sketch_text)
+
+        global text_height_workaround_state_
+        if text_height_workaround_state_ == WorkaroundState.Enabled:
+            # Expecting parameter order to be stable inside our function scope
+            param_exprs = [p.expression for p in sketch_text.parentSketch.parentComponent.modelParameters]
+
         sketch_text.text = text
+
+        if text_height_workaround_state_ == WorkaroundState.Enabled:
+            for orig_expr, param in zip(param_exprs, sketch_text.parentSketch.parentComponent.modelParameters):
+                # Doubles! We should be able to check equality since we don't change the values
+                if param.expression != orig_expr:
+                    param.expression = orig_expr
+                    break
     except RuntimeError as e:
         msg = None
         if len(e.args) > 0:
@@ -710,6 +737,45 @@ def set_sketch_text(sketch_text, text):
                             NAME_VERSION)
             # Unhook the text from the text parameter?
     return True
+
+def check_text_height_bug(sketch_text):
+    global text_height_workaround_state_
+
+    if text_height_workaround_state_ != WorkaroundState.Check:
+        # Already checked
+        return
+
+    # We cannot trust the SketchText.height != 1.0 changing to 1.0, as it does not always match the
+    # real value and the model parameter! (Real value of 2.0 gives a height value of 0.9999999999999996
+    # and sometimes 2.0!)
+    # The expression field will be different dependending on the units set in the document.
+    # This means that we have no way of telling if any selected parameter is going to be affected, and
+    # we therefore cannot detect on-the-fly if an "affected" parameter was left untouched.
+    # Instead, we use the given text for testing if the bug is present, by observing if any parameters
+    # change.
+
+    # Note: We must restore the expression when we are done!
+
+    orig_param_exprs = [p.expression for p in sketch_text.parentSketch.parentComponent.modelParameters]
+
+    # We don't know which parameter is connected to the SketchText, so we must fiddle with the SketcText
+    # and observe
+    # The bug sets the value *close to* 1.0, but not always exactly 1.0. So try another value.
+    test_height = 2.0
+    sketch_text.height = test_height
+    
+    height_is_set = math.isclose(sketch_text.height, test_height, rel_tol=0.1)
+    text_height_workaround_state_ = WorkaroundState.Disabled if height_is_set else WorkaroundState.Enabled
+    print(f"{NAME} TEXT HEIGHT WORKAROUND:", text_height_workaround_state_)
+
+    # Alternative method: Scan the parameters and find the changed value. We might need two tries, as
+    # we might be setting the value the user set initially.
+
+    # Restore the parameter's expression (which might be more than a simple value)
+    for orig_expr, param in zip(orig_param_exprs, sketch_text.parentSketch.parentComponent.modelParameters):
+        if param.expression != orig_expr:
+            param.expression = orig_expr
+            break
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
