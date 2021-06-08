@@ -28,3 +28,5 @@ Take screenshots of any error messages.
  - OS: [Windows, Mac]
  - Fusion 360 version: [Help->About]
  - ParametricText version: [v x.x.x]
+
+Do not forget to "Subscribe" to the issue if you want updates!
