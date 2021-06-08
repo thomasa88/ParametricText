@@ -158,9 +158,9 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
 
 * v 2.2.0
   * Workaround for Fusion 360™ giving error when inspecting some selections, which broke the name tracking for `_.component`, `_.file` and `_.sketch`.  
-  * Do not show an add-in error when *Compute All* fails. Instead, show an error notification.
-  * Workaround for missing document metadata (dataFile error). Force Fusion 360™ to download metadata.
-  * Workaround for Fusion 360™ resetting text height on text content change.
+  * Do not show an add-in error when *Compute All* fails. Instead, show an error notification. (#9)
+  * Workaround for missing document metadata (dataFile error). Force Fusion 360™ to download metadata. (#22)
+  * Workaround for Fusion 360™ resetting text height on text content change. (#21)
   * Check if multiple copies av ParametricText has been installed (will only work for this version or newer).
 * v 2.1.0
   * Fix Fusion 360 crash in non-parametric mode, by not calling *Compute All* in non-parametric mode.
