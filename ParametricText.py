@@ -137,6 +137,9 @@ dialog_state_ = None
 # Flag to disable add-in if there are storage mismatches.
 enabled_ = True
 
+# Flag to check if add-in has been started/initialized.
+started_ = False
+
 class WorkaroundState(enum.Enum):
     Check = 0
     Enabled = 1
@@ -150,6 +153,20 @@ def run(context):
     with error_catcher_:
         app_ = adsk.core.Application.get()
         ui_ = app_.userInterface
+
+        # Instance check, in case the user has installed ParametricText both from
+        # the app store and from github
+        instance_string = f'{NAME_VERSION} in {thomasa88lib.utils.get_file_dir()}'
+        if hasattr(adsk, 'thomasa88_parametric_text_running'):
+            ui_.messageBox(f"Two copies of {NAME} are enabled:\n\n"
+                           f"{adsk.thomasa88_parametric_text_running}\n"
+                           f"{instance_string}\n\n"
+                           "Please disable (add-ins dialog) or uninstall one copy.",
+                           NAME_VERSION)
+            return
+        adsk.thomasa88_parametric_text_running = instance_string
+        global started_
+        started_ = True
 
         # Make sure an old version of this command is not running and blocking the "add"
         if ui_.activeCommand == MAP_CMD_ID:
@@ -201,6 +218,9 @@ def run(context):
             check_storage_version()
 
 def stop(context):
+    if not started_:
+        return
+
     with error_catcher_:
         events_manager_.clean_up()
 
@@ -213,6 +233,8 @@ def stop(context):
         map_cmd_def = panel.controls.itemById(MAP_CMD_ID)
         if map_cmd_def:
             map_cmd_def.deleteMe()
+
+        del adsk.thomasa88_parametric_text_running
 
 def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     global command_
