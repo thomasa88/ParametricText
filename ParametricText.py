@@ -758,6 +758,8 @@ def set_sketch_text(sketch_text, text):
                             'See add-in help document/README for more information.',
                             NAME_VERSION)
             # Unhook the text from the text parameter?
+        else:
+            raise
     return True
 
 def check_text_height_bug(sketch_text):

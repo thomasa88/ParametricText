@@ -162,6 +162,7 @@ This project is licensed under the terms of the MIT license. See [LICENSE](LICEN
   * Workaround for missing document metadata (dataFile error). Force Fusion 360™ to download metadata. (#22)
   * Workaround for Fusion 360™ resetting text height on text content change. (#21)
   * Check if multiple copies av ParametricText has been installed (will only work for this version or newer).
+  * Show error dialog for unhandled error when updating sketch text.
 * v 2.1.0
   * Fix Fusion 360 crash in non-parametric mode, by not calling *Compute All* in non-parametric mode.
   * Only run automatic *Compute All* if there are any text parameters that have been updated.
