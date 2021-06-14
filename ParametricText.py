@@ -74,7 +74,7 @@ PANEL_IDS = [
         ]
 
 QUICK_REF = '''<b>Quick Reference</b><br>
-{_.component}, {_.date}, {_.file}, {_.version}<br>
+{_.component}, {_.sketch}, {_.date}, {_.file}, {_.version}<br>
 {param}|{param.value}, {param.expr}, {param.unit}, {param.comment}<br>
 <br>
 {_.version:03} = 024 (integer)<br>
