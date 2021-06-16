@@ -1,7 +1,7 @@
 What's New
 ----------
 
--  v 2.2.0
+-  v 2.2.0 (June 2021)
 
    -  Workaround for Fusion 360™ giving error when inspecting some selections, which broke the name tracking for ``_.component``, ``_.file`` and ``_.sketch``.  
    -  Do not show an add-in error when *Compute All* fails. Instead, show an error notification. (#9)
@@ -11,7 +11,7 @@ What's New
    -  Show error dialog for unhandled error when updating sketch text.
    -  New documentation
 
--  v 2.1.0
+-  v 2.1.0 (March 2021)
 
    -  Fix Fusion 360™ crash in non-parametric mode, by not calling
       *Compute All* in non-parametric mode.
@@ -20,7 +20,7 @@ What's New
    -  Text substrings using Python slice operator.
    -  Add ``_.sketch``
 
--  v 2.0.0
+-  v 2.0.0 (November 2020)
 
    -  Rewritten selection engine.
 
@@ -39,7 +39,7 @@ What's New
    -  Quick buttons for prepending braces and appending common
       parameters.
 
--  v 1.1.0
+-  v 1.1.0 (October 2020)
 
    -  ``_.date`` for retrieving document save date.
    -  Workaround for `Fusion 360™
@@ -50,22 +50,22 @@ What's New
       closed without any changes.
    -  Handle unit-less parameter values.
 
--  v 1.0.1
+-  v 1.0.1 (September 2020)
 
    -  Fix error when using ``_.version`` in documents that have never
       been saved.
    -  Redesign logo to comply with app store.
 
--  v 1.0.0
+-  v 1.0.0 (September 2020)
 
    -  Out of beta!
 
--  v 0.2.1
+-  v 0.2.1 (September 2020)
 
    -  Set table height to 10 rows.
    -  Fix #1. Handle unsaved documents.
 
--  v 0.2.0
+-  v 0.2.0 (August 2020)
 
    -  Basic support for Python format specifiers.
    -  *Insert braces* button.
@@ -75,10 +75,10 @@ What's New
    -  Use correct unit/scaling when showing parameter value.
    -  Quick reference in dialog.
 
--  v 0.1.1
+-  v 0.1.1 (August 2020)
 
    -  Enable *Run on Startup* by default.
 
--  v 0.1.0
+-  v 0.1.0 (August 2020)
 
    -  First beta release
