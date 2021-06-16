@@ -3,7 +3,8 @@
     content: "";
     width: 32px;
     height: 32px;
-    background: url(logo.svg);
+    /* Using bitmap logo to always get correct rendering */
+    background: url(logo_32x32.png);
     position: relative;
     top: 10px;
 }
