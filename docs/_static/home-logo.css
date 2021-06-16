@@ -1,0 +1,14 @@
+.icon-home::before {
+    display: inline-block;
+    content: "";
+    width: 32px;
+    height: 32px;
+    /* Using bitmap logo to always get correct rendering */
+    background: url(logo_32x32.png);
+    position: relative;
+    top: 10px;
+}
+
+.wy-side-nav-search .icon-home::before {
+    margin-left: -16px;
+}
