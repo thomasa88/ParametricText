@@ -1,3 +1,6 @@
+Author & License
+================
+
 Author
 ------
 
