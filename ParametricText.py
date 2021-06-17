@@ -26,9 +26,11 @@
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
 from collections import defaultdict
+import enum
 import datetime
 import queue
 import re
+import math
 
 NAME = 'ParametricText'
 
@@ -72,7 +74,7 @@ PANEL_IDS = [
         ]
 
 QUICK_REF = '''<b>Quick Reference</b><br>
-{_.component}, {_.date}, {_.file}, {_.version}<br>
+{_.component}, {_.sketch}, {_.date}, {_.file}, {_.version}<br>
 {param}|{param.value}, {param.expr}, {param.unit}, {param.comment}<br>
 <br>
 {_.version:03} = 024 (integer)<br>
@@ -88,10 +90,6 @@ STORAGE_VERSION = 2
 ATTRIBUTE_GROUP = 'thomasa88_ParametricText'
 
 AUTOCOMPUTE_SETTING = 'autocompute'
-
-class SelectAction:
-    Select = 1
-    Unselect = 2
 
 class DialogState:
     def __init__(self):
@@ -111,8 +109,11 @@ app_ = None
 ui_ = None
 
 manifest_ = thomasa88lib.manifest.read()
+
+NAME_VERSION = f'{NAME} v {manifest_["version"]}'
+
 error_catcher_ = thomasa88lib.error.ErrorCatcher(msgbox_in_debug=False,
-                                                 msg_prefix=f'{NAME} v {manifest_["version"]}')
+                                                 msg_prefix=NAME_VERSION)
 events_manager_ = thomasa88lib.events.EventsManager(error_catcher_)
 settings_ = thomasa88lib.settings.SettingsManager({
     AUTOCOMPUTE_SETTING: True
@@ -136,12 +137,36 @@ dialog_state_ = None
 # Flag to disable add-in if there are storage mismatches.
 enabled_ = True
 
+# Flag to check if add-in has been started/initialized.
+started_ = False
+
+class WorkaroundState(enum.Enum):
+    Check = 0
+    Enabled = 1
+    Disabled = 2
+
+text_height_workaround_state_ = WorkaroundState.Check
+
 def run(context):
     global app_
     global ui_
     with error_catcher_:
         app_ = adsk.core.Application.get()
         ui_ = app_.userInterface
+
+        # Instance check, in case the user has installed ParametricText both from
+        # the app store and from github
+        instance_string = f'{NAME_VERSION} in {thomasa88lib.utils.get_file_dir()}'
+        if hasattr(adsk, 'thomasa88_parametric_text_running'):
+            ui_.messageBox(f"Two copies of {NAME} are enabled:\n\n"
+                           f"{adsk.thomasa88_parametric_text_running}\n"
+                           f"{instance_string}\n\n"
+                           "Please disable (add-ins dialog) or uninstall one copy.",
+                           NAME_VERSION)
+            return
+        adsk.thomasa88_parametric_text_running = instance_string
+        global started_
+        started_ = True
 
         # Make sure an old version of this command is not running and blocking the "add"
         if ui_.activeCommand == MAP_CMD_ID:
@@ -156,7 +181,7 @@ def run(context):
                                                                  f'Change Text Parameters',            
                                                                  'Displays the Text Parameters dialog box.\n\n'
                                                                  'Assign and edit sketch text parameters.\n\n'
-                                                                  f'({NAME} v {manifest_["version"]})',
+                                                                  f'({NAME_VERSION})',
                                                                   './resources/text_parameter')
         events_manager_.add_handler(map_cmd_def.commandCreated,
                                     callback=map_cmd_created_handler)
@@ -193,6 +218,9 @@ def run(context):
             check_storage_version()
 
 def stop(context):
+    if not started_:
+        return
+
     with error_catcher_:
         events_manager_.clean_up()
 
@@ -205,6 +233,8 @@ def stop(context):
         map_cmd_def = panel.controls.itemById(MAP_CMD_ID)
         if map_cmd_def:
             map_cmd_def.deleteMe()
+
+        del adsk.thomasa88_parametric_text_running
 
 def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     global command_
@@ -504,7 +534,7 @@ def find_equal_sketch_text(in_sketch, sketch_text):
     else:
         ui_.messageBox(f'Failed to translate sketch text proxy (component instance) to native text object.\n\n'
                         'Please inform the developer of what steps you performed to trigger this error.',
-                        f'{NAME} v {manifest_["version"]}')
+                        NAME_VERSION)
     return in_sketch.sketchTexts.item(text_index)
 
 def set_row_sketch_texts_text(sketch_texts_input, sketch_texts):
@@ -645,7 +675,7 @@ def save_next_id():
     if next_id is None:
         ui_.messageBox(f'Failed to save text ID counter. Save failed.\n\n'
                        'Please inform the developer of the steps you performed to trigger this error.',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         return False
     design.attributes.add(ATTRIBUTE_GROUP, 'nextId', str(next_id))
     dialog_next_id_ = None
@@ -669,7 +699,29 @@ def set_sketch_text(sketch_text, text):
         # Avoid triggering computations and undo history for unchanged texts
         if sketch_text.text == text:
             return False
+        
+        # Changing any SketchText property resets the text height
+        # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-setting-sketchtext-properties-resets-text-height-since-v-2-0/m-p/10357593
+        # The only way to restore the height of a text is by setting its ModelParameter
+        # However, there is no accessible mapping between SketchText and the parameter,
+        # so we save the component's model parameters and restore the one that has been changed,
+        # in case it has been changed.
+
+        check_text_height_bug(sketch_text)
+
+        global text_height_workaround_state_
+        if text_height_workaround_state_ == WorkaroundState.Enabled:
+            # Expecting parameter order to be stable inside our function scope
+            param_exprs = [p.expression for p in sketch_text.parentSketch.parentComponent.modelParameters]
+
         sketch_text.text = text
+
+        if text_height_workaround_state_ == WorkaroundState.Enabled:
+            for orig_expr, param in zip(param_exprs, sketch_text.parentSketch.parentComponent.modelParameters):
+                # Doubles! We should be able to check equality since we don't change the values
+                if param.expression != orig_expr:
+                    param.expression = orig_expr
+                    break
     except RuntimeError as e:
         msg = None
         if len(e.args) > 0:
@@ -693,7 +745,7 @@ def set_sketch_text(sketch_text, text):
                                 'due to the text having an SHX font. This bug was introduced by Fusion 360™ version 2.0.9142.\n\n'
                                 'Please change the text to not have an SHX font or remove it from the paremeter list.\n\n'
                                 'See add-in help document/README for more information.',
-                                f'{NAME} v {manifest_["version"]}')
+                                NAME_VERSION)
                 # Unhook the text from the text parameter?
         elif msg == '3 : invalid input angle':
             # Negative angle bug. Cannot set text when the angle is negative.
@@ -704,9 +756,50 @@ def set_sketch_text(sketch_text, text):
                             'due to the text having a negative angle.\n\n'
                             'Please edit the text to have a positive angle (add 360 degrees to the current angle).\n\n'
                             'See add-in help document/README for more information.',
-                            f'{NAME} v {manifest_["version"]}')
+                            NAME_VERSION)
             # Unhook the text from the text parameter?
+        else:
+            raise
     return True
+
+def check_text_height_bug(sketch_text):
+    global text_height_workaround_state_
+
+    if text_height_workaround_state_ != WorkaroundState.Check:
+        # Already checked
+        return
+
+    # We cannot trust the SketchText.height != 1.0 changing to 1.0, as it does not always match the
+    # real value and the model parameter! (Real value of 2.0 gives a height value of 0.9999999999999996
+    # and sometimes 2.0!)
+    # The expression field will be different dependending on the units set in the document.
+    # This means that we have no way of telling if any selected parameter is going to be affected, and
+    # we therefore cannot detect on-the-fly if an "affected" parameter was left untouched.
+    # Instead, we use the given text for testing if the bug is present, by observing if any parameters
+    # change.
+
+    # Note: We must restore the expression when we are done!
+
+    orig_param_exprs = [p.expression for p in sketch_text.parentSketch.parentComponent.modelParameters]
+
+    # We don't know which parameter is connected to the SketchText, so we must fiddle with the SketcText
+    # and observe
+    # The bug sets the value *close to* 1.0, but not always exactly 1.0. So try another value.
+    test_height = 2.0
+    sketch_text.height = test_height
+    
+    height_is_set = math.isclose(sketch_text.height, test_height, rel_tol=0.1)
+    text_height_workaround_state_ = WorkaroundState.Disabled if height_is_set else WorkaroundState.Enabled
+    print(f"{NAME} TEXT HEIGHT WORKAROUND:", text_height_workaround_state_)
+
+    # Alternative method: Scan the parameters and find the changed value. We might need two tries, as
+    # we might be setting the value the user set initially.
+
+    # Restore the parameter's expression (which might be more than a simple value)
+    for orig_expr, param in zip(orig_param_exprs, sketch_text.parentSketch.parentComponent.modelParameters):
+        if param.expression != orig_expr:
+            param.expression = orig_expr
+            break
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
@@ -744,7 +837,7 @@ def evaluate_text(text, sketch_text, next_version=False):
             if member == 'version':
                 # No version information available if the document is not saved
                 if app_.activeDocument.isSaved:
-                    version = app_.activeDocument.dataFile.versionNumber
+                    version = get_data_file().versionNumber
                 else:
                     version = 0
                 if next_version:
@@ -767,7 +860,7 @@ def evaluate_text(text, sketch_text, next_version=False):
                     # save.
                     save_time = datetime.datetime.now(tz=datetime.timezone.utc)
                 elif app_.activeDocument.isSaved:
-                    unix_time_utc = app_.activeDocument.dataFile.dateCreated
+                    unix_time_utc = get_data_file().dateCreated
                     save_time = datetime.datetime.fromtimestamp(unix_time_utc,
                                                                 tz=datetime.timezone.utc)
                 else:
@@ -840,6 +933,77 @@ def evaluate_text(text, sketch_text, next_version=False):
 
     shown_text = SUBST_PATTERN.sub(sub_func, text)
     return shown_text
+
+def get_data_file():
+    '''Wrapper for ActiveDocument.DataFile that tries to download the
+    data from the cloud if it is not already cached.
+    '''
+    data_file, probe_error = probe_data_file()
+    if data_file:
+        return data_file
+
+    # It looks like Fusion 360 has not downloaded the cloud data for this file,
+    # either because it was opened through "Editable Documents" or as a sub-assembly
+    # through another file, without opening t the file's folder.
+    # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/error-retrieving-datafile-in-unopened-folder/m-p/8384143#M6854
+    
+    # Trigger download of Editable Documents data
+    if app_.data.personalUseLimits:
+        app_.data.personalUseLimits.editableFiles
+    
+    data_file, probe_error = probe_data_file()
+    if data_file:
+        return data_file
+
+    # Trigger download data for all documents
+    progress = ui_.createProgressDialog()
+    progress.isCancelButtonShown = True
+    projects = app_.data.dataProjects
+    base_msg = ("Cannot determine document's project (The folder has likely not been opened).\n"
+                "Scanning for missing metadata.\n\n")
+    progress.show(NAME_VERSION, base_msg, 0, projects.count, 0)
+    for i, p in enumerate(projects):
+        progress.message = f"{base_msg}Scanning project \"{p.name}\""
+        if progress.wasCancelled:
+            break
+
+        cache_data_folder(p.rootFolder)
+        
+        progress.progressValue = i + 1
+
+        data_file, probe_error = probe_data_file()
+        if data_file:
+            break
+
+    progress.hide()
+    
+    if data_file:
+        return data_file
+
+    raise probe_error
+
+def cache_data_folder(folder):
+    '''Forces Fusion 360 to download metadata for all documents in
+    the given folder.
+    
+    Note: Fusion 360 will always try to fetch new data, even though
+          it has data cached.
+    '''
+    for child_df in folder.dataFiles:
+        # This forces Fusion 360 to download and cache the DataFile
+        child_df.id
+    for child_folder in folder.dataFolders:
+        cache_data_folder(child_folder)
+
+def probe_data_file():
+    try:
+        return app_.activeDocument.dataFile, None
+    except RuntimeError as e:
+        if e.args and e.args[0].startswith('2 : InternalValidationError : dataFile'):
+            # DataFile is currently not cached
+            return None, e
+        else:
+            raise
 
 def load(cmd):
     global dialog_selection_map_
@@ -933,7 +1097,7 @@ def check_storage_version():
                              'The text parameters will be converted to the new storage format.\n\n'
                              f'If you proceed, the document will no longer work with the older version of {NAME}. '
                              f'If you cancel, you will not be able to update the text parameters using this version of {NAME}.',
-                             f'{NAME} v {manifest_["version"]}',
+                             NAME_VERSION,
                              adsk.core.MessageBoxButtonTypes.OKCancelButtonType)
         if ret == adsk.core.DialogResults.DialogOK:
             migrate_storage_async(file_db_version, STORAGE_VERSION)
@@ -947,14 +1111,14 @@ def check_storage_version():
         ui_.messageBox(f'This document has text parameters created with a newer storage format version ({file_db_version}), '
                        f'which is not compatible with this version of {NAME} ({STORAGE_VERSION}).\n\n'
                        f'You will need to update {NAME} to be able to update the text parameters.',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         disable_addin()
     else:
         ui_.messageBox(f'This document has text parameters created with unknown storage format version ({file_db_version}).\n\n'
                        f'You will not be able to update the text parameters.\n\n'
                        f'Please report this to the developer. It is recommended that you restore an old version '
                        f'of your document.',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         disable_addin()
     return False
 
@@ -1010,7 +1174,7 @@ def migrate_cmd_execute_handler(args: adsk.core.CommandEventArgs):
         save_storage_version()
     else:
         ui_.messageBox('Cannot migrate from storage version {from_version} to {to_version}!',
-                       f'{NAME} v {manifest_["version"]}')
+                       NAME_VERSION)
         disable_addin()
         return
 
@@ -1106,9 +1270,15 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
         # User might have changed a component or sketch name
         text_filter = set()
         for selection in ui_.activeSelections:
-            if isinstance(selection.entity, adsk.fusion.Occurrence):
+            # Getting "RuntimeError: 3 : object is invalid" if we try to get the entity
+            # for selection of some features/objects.
+            try:
+                entity = selection.entity
+            except RuntimeError:
+                continue
+            if isinstance(entity, adsk.fusion.Occurrence):
                 text_filter.add('_.component')
-            elif isinstance(selection.entity, adsk.fusion.Sketch):
+            elif isinstance(entity, adsk.fusion.Sketch):
                 text_filter.add('_.sketch')
         if text_filter:
             update_texts_async(text_filter=['_.component', '_.sketch'])
@@ -1152,7 +1322,7 @@ def update_texts(text_filter=None, next_version=False, texts=None):
             design.computeAll()
         except RuntimeError as e:
             if e.args and 'Compute Failed' in e.args[0]:
-                msg = f'Compute all, triggered by {NAME} v {manifest_["version"]}, failed:<br>\n<br>\n'
+                msg = f'Compute all, triggered by {NAME_VERSION}, failed:<br>\n<br>\n'
                 msg += e.args[0].replace('5 : ', '').replace('\n', '<br>\n')
                 # Putting the call at the end of the event queue, to not abort
                 # any command that called this function.

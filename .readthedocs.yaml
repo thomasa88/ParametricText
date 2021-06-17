@@ -1,0 +1,20 @@
+# Required
+version: 2
+
+sphinx:
+  builder: html
+  configuration: docs/conf.py
+  fail_on_warning: true
+
+python:
+  install:
+  - requirements: docs/requirements.txt
+
+# name: docs
+# channels:
+#   - conda-forge
+#   - defaults
+# dependencies:
+#   - sphinx==3.5.4
+#   - pip:
+#     - sphinx_rtd_theme==0.5.2
