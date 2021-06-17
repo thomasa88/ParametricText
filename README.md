@@ -13,7 +13,7 @@ ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text Paramete
 
 ## Documentation
 
-https://parametrictext.readthedocs.io
+https://parametrictext.readthedocs.io/en/stable/
 
 ## More Fusion 360™ Add-ins
 
