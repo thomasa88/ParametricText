@@ -20,3 +20,9 @@ https://parametrictext.readthedocs.io/en/stable/
 [My Fusion 360™ app store page](https://apps.autodesk.com/en/Publisher/PublisherHomepage?ID=JLH9M8296BET)
 
 [All my add-ins on Github](https://github.com/topics/fusion-360?q=user%3Athomasa88)
+
+## Development
+
+### Running tests
+
+Currently, each unit test file is self-contained. Just execute each file with Python.

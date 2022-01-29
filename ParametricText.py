@@ -59,6 +59,7 @@ importlib.reload(thomasa88lib.error)
 importlib.reload(thomasa88lib.settings)
 
 from . import paramparser
+from . import paramformatter
 
 MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
@@ -831,6 +832,7 @@ def evaluate_text(text, sketch_text, next_version=False):
             member_sep = ''
             member = ''
 
+        # Strings can be sliced
         string_value = False
 
         if var_name == '_':
@@ -918,6 +920,8 @@ def evaluate_text(text, sketch_text, next_version=False):
                 value = param.expression
             elif member == 'unit':
                 value = param.unit
+            elif member == 'inchfrac':
+                value = paramformatter.mixed_frac_inch(param, design)
             else:
                 return f'<Unknown member of {var_name}: {member}>'
 
