@@ -895,6 +895,8 @@ def evaluate_text(text, sketch_text, next_version=False):
                 ### Is this useful? Let's users edit the texts directly in the Browser or Timeline, I guess.
                 value = sketch_text.parentSketch.name
                 string_value = True
+            elif member == 'newline':
+                value = '\n'
             else:
                 return f'<Unknown member of {var_name}: {member}>'
         else:
