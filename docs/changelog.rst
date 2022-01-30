@@ -1,5 +1,11 @@
 What's New
 ----------
+-  v 2.3.0 (February 2022)
+
+   -  Add ``_.newline``
+   -  Add ``parameter.inchfrac``
+   -  Text parameters based on sketch dimensions now also update when the sketch dimension is edited within the sketch.
+   -  Fix numbers showing with a very small error (e.g. 43 shown as 42.99999999). (#11)
 
 -  v 2.2.0 (June 2021)
 

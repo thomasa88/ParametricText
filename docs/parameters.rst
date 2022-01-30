@@ -18,26 +18,32 @@ Document Parameters
 
 Both model and user parameters can be used as input for the parametric text. The following properties are accessible.
 
-+------------------+----------+------------+----------+
-| Property         | Type     | Description|Example   |
-|                  |          |            |Value     |
-+==================+==========+============+==========+
-| parameter.unit   | string   |Parameter   |mm        |
-|                  |          |unit        |          |
-+------------------+----------+------------+----------+
-| parameter.expr   | string   |Parameter   |25 mm     |
-|                  |          |expression  |          |
-+------------------+----------+------------+----------+
-| parameter        | decimal  |Parameter   |25.0      |
-|                  | (double) |value       |          |
-| *or*             |          |            |          |
-|                  |          |            |          |
-| parameter.value  |          |            |          |
-+------------------+----------+------------+----------+
-| parameter.comment| string   |Parameter   |Distance  |
-|                  |          |comment     |between   |
-|                  |          |            |slots     |
-+------------------+----------+------------+----------+
++-------------------+----------+------------+----------+
+| Property          | Type     | Description|Example   |
+|                   |          |            |Value     |
++===================+==========+============+==========+
+| parameter.unit    | string   |Parameter   |mm        |
+|                   |          |unit        |          |
++-------------------+----------+------------+----------+
+| parameter.expr    | string   |Parameter   |25 mm     |
+|                   |          |expression  |          |
++-------------------+----------+------------+----------+
+| parameter         | decimal  |Parameter   |25.0      |
+|                   | (double) |value       |          |
+| *or*              |          |            |          |
+|                   |          |            |          |
+| parameter.value   |          |            |          |
++-------------------+----------+------------+----------+
+| parameter.comment | string   |Parameter   |Distance  |
+|                   |          |comment     |between   |
+|                   |          |            |slots     |
++-------------------+----------+------------+----------+
+| parameter.inchfrac| --       |Parameter   |1 1/2"    |
+|                   |          |value as    |          |
+|                   |          |mixed       |          |
+|                   |          |fraction    |          |
+|                   |          |inch        |          |
++-------------------+----------+------------+----------+
 
 Compare the above properties with the Fusion 360™ parameters dialog, as shown below.
 
@@ -75,6 +81,10 @@ ParametricText includes a special parameter, ``_``, that does not exist in the F
 |               |          |sketch       |            |
 |               |          |containing   |            |
 |               |          |the text     |            |
++---------------+----------+-------------+------------+
+| _.newline     | --       |Breaks the   | ↵          |
+|               |          |text into a  |            |
+|               |          |new line     |            |
 +---------------+----------+-------------+------------+
 
 .. [#] Note: The time of day is “unstable”. The time of day will be set a few
