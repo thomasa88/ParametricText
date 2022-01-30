@@ -912,7 +912,10 @@ def evaluate_text(text, sketch_text, next_version=False):
                     # Unit-less
                     value = param.value
                 else:
-                    value = design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit)
+                    # Has unit.
+                    # Rounding is done to get rid of small floating point value noise,
+                    # that result in "almost-correct" numbers. (42.99999999999 -> 43)
+                    value = round(design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit), 10)
             elif member == 'comment':
                 value = param.comment
                 string_value = True
