@@ -152,7 +152,7 @@ Examples
 |``{_.date:%W}``      |39             |Current week, that   |
 |                     |               |starts on a Monday   |
 +---------------------+---------------+---------------------+
-|``{_.date:%H:%M}``   |14:58          |Hour:second in       |
+|``{_.date:%H:%M}``   |14:58          |Hour:minute in       |
 |                     |               |24-hour format       |
 +---------------------+---------------+---------------------+
 
@@ -170,7 +170,7 @@ The range is left-inclusive and right-exclusive, meaning that a range of
 The character position is zero-indexed, which means that the first
 character will be number ``0``.
 
-Note: The length of numberic parameters can be adjusted using the Python
+Note: The length of numeric parameters can be adjusted using the Python
 Format Specifiers instead of substrings.
 
 Examples
