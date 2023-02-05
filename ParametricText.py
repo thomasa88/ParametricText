@@ -275,7 +275,12 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     about.isFullWidth = True
     
     table_input = cmd.commandInputs.addTableCommandInput('table', '', 3, '4:1:8')
-    table_input.isFullWidth = True
+    # Fusion 2.0.15291 breaks isFullWidth. Exception: RuntimeError: 2 : InternalValidationError : control
+    # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-update-now-throws-exception-setting-isfullwidth-on/m-p/11725404
+    try:
+        table_input.isFullWidth = True
+    except RuntimeError:
+        pass
     table_input.maximumVisibleRows = 10
     table_input.minimumVisibleRows = 10
 
