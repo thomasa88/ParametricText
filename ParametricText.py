@@ -65,6 +65,7 @@ MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
 UPDATE_CMD_ID = 'thomasa88_ParametricText_Update'
 ERROR_CMD_ID = 'thomasa88_ParametricText_ErrorNotification'
+EXT_UPDATE_EVENT_ID = 'thomasa88_ParametricText_Ext_Update'
 PANEL_IDS = [
             'SketchModifyPanel',
             'SolidModifyPanel',
@@ -213,6 +214,9 @@ def run(context):
         error_cmd_def = ui_.commandDefinitions.addButtonDefinition(ERROR_CMD_ID, 'Show error', '')
         events_manager_.add_handler(error_cmd_def.commandCreated,
                                     callback=error_cmd_created_handler)
+        
+        delayed_event = events_manager_.register_event(EXT_UPDATE_EVENT_ID)
+        events_manager_.add_handler(delayed_event, callback=ext_call_update_handler)
 
         if app_.isStartupComplete and is_design_workspace():
             # Add-in was (re)loaded while Fusion 360 was running
@@ -1391,3 +1395,6 @@ def error_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
 def error_cmd_execute_handler(args: adsk.core.CommandEventArgs):
     args.executeFailed = True
     args.executeFailedMessage = error_notification_msg_
+
+def ext_call_update_handler(args: adsk.core.CustomEventArgs):
+    update_texts()
