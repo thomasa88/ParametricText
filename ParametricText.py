@@ -1274,7 +1274,8 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     # Also, call the async function to only get one Undo item.
 
     if args.commandId in ['ChangeParameterCommand',
-                          'SketchEditDimensionCmdDef']:
+                          'SketchEditDimensionCmdDef',
+                          'DesignConfigurationActivateRowCmd']:
         # User (might have) changed a parameter
         update_texts_async()
     elif args.commandId == 'FusionPasteNewCommand':
