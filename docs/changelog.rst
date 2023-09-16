@@ -1,8 +1,10 @@
 What's New
 ----------
--  v 2.3.1 (February 2023)
+
+-  v 2.3.1 (September 2023)
 
    - Workaround for `Fusion 360™ bug <https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-update-now-throws-exception-setting-isfullwidth-on/m-p/11725404>`__ when creating the edit dialog.
+   - Update texts when the active Configuration changes. (#56)
 
 -  v 2.3.0 (February 2022)
 
