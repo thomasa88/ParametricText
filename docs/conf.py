@@ -20,7 +20,7 @@ import sphinx_rtd_theme
 # -- Project information -----------------------------------------------------
 
 project = 'ParametricText'
-copyright = '2021, Thomas Axelsson'
+copyright = '2021-2024, Thomas Axelsson'
 author = 'Thomas Axelsson'
 
 # The full version, including alpha/beta/rc tags

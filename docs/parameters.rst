@@ -6,7 +6,7 @@ ParametricText has basic support for including parameter values using
 Specifiers <https://docs.python.org/3/library/string.html#formatspec>`__.
 By writing ``{parameter}``, the text is substituted by the parameter
 value. E.g., if the parameter *d10* has the value 20, ``{d10}`` becomes
-``20.0``. ``{d10:.3f}`` becomes ``20.000``.
+``20.0``. ``{d10:.3f}`` becomes ``20.000`` (3 decimals).
 
 The special parameter ``_`` gives access to special values, such as
 document version.
@@ -89,7 +89,8 @@ ParametricText includes a special parameter, ``_``, that does not exist in the F
 
 .. [#] Note: The time of day is “unstable”. The time of day will be set a few
    seconds before the save time, when saving, and on the next change of
-   text parameters, the time will jump to the correct save time.
+   text parameters, the time will jump to the correct save time. See also
+   `Date Formatting`_ below.
 
 Parameter Formatting
 --------------------
@@ -107,24 +108,25 @@ full set of options.
 Examples
 ^^^^^^^^
 
-+------------------+---------------+----------------------+
-|Expression        |Example Result |Explanation           |
-|                  |               |                      |
-+==================+===============+======================+
-|``{d10:.3f}``     | 10.000        |Parameter value with 3|
-|                  |               |decimals              |
-|                  |               |                      |
-|                  |               |                      |
-|                  |               |                      |
-+------------------+---------------+----------------------+
-|``{d10:.0f}``     | 10            |Parameter value       |
-|                  |               |without decimals      |
-|                  |               |                      |
-+------------------+---------------+----------------------+
-|``{_.version:03}``| 002           |Document version,     |
-|                  |               |expressed with 3      |
-|                  |               |digits                |
-+------------------+---------------+----------------------+
++-----------------------+------------------+---------------+----------------------+
+| Input variable value  |Expression        |Example Result |Explanation           |
+|                       |                  |               |                      |
++=======================+==================+===============+======================+
+| *d10* = ``10``        |``{d10:.3f}``     | 10.000        |Parameter value with 3|
+|                       |                  |               |decimals              |
+|                       |                  |               |                      |
+|                       |                  |               |                      |
+|                       |                  |               |                      |
++-----------------------+------------------+---------------+----------------------+
+| *d10* = ``10``        |``{d10:.0f}``     | 10            |Parameter value       |
+|                       |                  |               |without decimals      |
+|                       |                  |               |                      |
++-----------------------+------------------+---------------+----------------------+
+| *_.version* = ``2``   |``{_.version:03}``| 002           |Document version,     |
+|                       |                  |               |expressed with 3      |
+|                       |                  |               |digits, with zero-    |
+|                       |                  |               |padding.              |
++-----------------------+------------------+---------------+----------------------+
  
 Date Formatting
 ---------------
@@ -189,7 +191,7 @@ Examples
 |``d10.comment[-5:]`` |slots          |Last five characters |
 |                     |               |of d10's comment     |
 +---------------------+---------------+---------------------+
-|``d10.comment[13:]`` |een slots      |The fourtenth        |
+|``d10.comment[13:]`` |een slots      |The fourteenth       |
 |                     |               |character and on     |
 |                     |               |                     |
 +---------------------+---------------+---------------------+
