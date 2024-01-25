@@ -19,6 +19,8 @@ From Autodesk® App Store |app_store_version|
 
 Go to the `ParametricText page <https://apps.autodesk.com/All/en/List/Search?isAppSearch=True&searchboxstore=All&facet=&collection=&sort=&query=parametrictext>`__ on the Autodesk® App Store. Select your Operating System and follow the installation instructions on the page.
 
+Note: There have been some reports of the Mac installer not installing the add-in correctly ("Change Text Parameters" not showing up in the *MODIFY* menu). In that case, try installing the add-in from Github instead, as described below.
+
 .. |app_store_version| image:: https://badgen.net/runkit/thomasa88/autodesk-appversion-badge/branches/master/2114937992453312456
 
 From Github |github_version|
