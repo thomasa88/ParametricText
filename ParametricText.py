@@ -81,9 +81,10 @@ QUICK_REF = '''<b>Quick Reference</b><br>
 {_.version:03} = 024 (integer)<br>
 {param.value:.3f} = 1.000, {param.value:03.0f} = 001 (float)<br>
 {param.comment:.6} = My com<br>
-{_.date:%Y-%m-%d} = 2020-10-24
+{_.date:%Y-%m-%d} = 2020-10-24<br>
+<a href="https://parametrictext.readthedocs.io/en/stable/parameters.html">Full reference</a>
 '''
-QUICK_REF_LINES = QUICK_REF.count('<br>') + 1
+QUICK_REF_LINES = QUICK_REF.count('<br>')
 
 # The attribute "database" version. Used to check compatibility with
 # parameters stored in the document.
