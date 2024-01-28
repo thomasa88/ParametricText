@@ -1,6 +1,11 @@
 What's New
 ----------
 
+-  v 2.3.2 (January 2024)
+
+   - Support for triggering update of text parameters from another script/add-in. (#54)
+   - Link to documentation from the parameter dialog.
+
 -  v 2.3.1 (September 2023)
 
    - Workaround for `Fusion 360™ bug <https://forums.autodesk.com/t5/fusion-360-api-and-scripts/bug-update-now-throws-exception-setting-isfullwidth-on/m-p/11725404>`__ when creating the edit dialog.
