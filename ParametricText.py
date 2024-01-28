@@ -148,7 +148,7 @@ class WorkaroundState(enum.Enum):
     Enabled = 1
     Disabled = 2
 
-text_height_workaround_state_ = WorkaroundState.Check
+text_height_workaround_state_ = WorkaroundState.Disabled
 
 def run(context):
     global app_
