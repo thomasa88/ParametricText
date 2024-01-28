@@ -1,5 +1,8 @@
 What's New
 ----------
+-  v 2.3.3 (January 2024)
+
+   - Fix text size becoming 20 mm when doing "Save As", by removing old fix for text height on text content change. (#29, #21)
 
 -  v 2.3.2 (January 2024)
 
