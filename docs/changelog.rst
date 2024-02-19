@@ -1,5 +1,9 @@
 What's New
 ----------
+-  v 2.4 (February 2024)
+
+   - Add ``_.configuration``. Autodesk feature support is still experimental.
+
 -  v 2.3.3 (January 2024)
 
    - Fix text size becoming 20 mm when doing "Save As", by removing old fix for text height on text content change. (#29, #21)

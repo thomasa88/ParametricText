@@ -57,35 +57,43 @@ The Special Parameter (_)
 
 ParametricText includes a special parameter, ``_``, that does not exist in the Fusion 360™ parameters dialog. ``_`` provides values from the document and its content.
 
-+---------------+----------+-------------+------------+
-| Property      | Type     | Description |Example     |
-|               |          |             |Value       |
-+===============+==========+=============+============+
-| _.component   | string   |Name of the  | Component1 |
-|               |          |component    |            |
-|               |          |containing   |            |
-|               |          |the text     |            |
-+---------------+----------+-------------+------------+
-| _.date [#]_   | datetime |Date & time  | 2021-07-06 |
-|               |          |when the     |            |
-|               |          |file was     |            |
-|               |          |saved        |            |
-+---------------+----------+-------------+------------+
-| _.file        | string   |Name of the  | My File    |
-|               |          |document/file|            |
-+---------------+----------+-------------+------------+
-| _.version     | string   |Document     | 10         |
-|               |          |version      |            |
-+---------------+----------+-------------+------------+
-| _.sketch      | string   |Name of the  | Sketch1    |
-|               |          |sketch       |            |
-|               |          |containing   |            |
-|               |          |the text     |            |
-+---------------+----------+-------------+------------+
-| _.newline     | --       |Breaks the   | ↵          |
-|               |          |text into a  |            |
-|               |          |new line     |            |
-+---------------+----------+-------------+------------+
++-------------------+----------+-------------+------------------+
+| Property          | Type     | Description |Example           |
+|                   |          |             |Value             |
++===================+==========+=============+==================+
+| _.component       | string   |Name of the  | Component1       |
+|                   |          |component    |                  |
+|                   |          |containing   |                  |
+|                   |          |the text     |                  |
++-------------------+----------+-------------+------------------+
+| _.configuration   | string   |Name of the  | Configuration 2  |
+| [#]_              |          |active       |                  |
+|                   |          |configuration|                  |
++-------------------+----------+-------------+------------------+
+| _.date [#]_       | datetime |Date & time  | 2021-07-06       |
+|                   |          |when the     |                  |
+|                   |          |file was     |                  |
+|                   |          |saved        |                  |
++-------------------+----------+-------------+------------------+
+| _.file            | string   |Name of the  | My File          |
+|                   |          |document/file|                  |
++-------------------+----------+-------------+------------------+
+| _.newline         | --       |Breaks the   | ↵                |
+|                   |          |text into a  |                  |
+|                   |          |new line     |                  |
++-------------------+----------+-------------+------------------+
+| _.sketch          | string   |Name of the  | Sketch1          |
+|                   |          |sketch       |                  |
+|                   |          |containing   |                  |
+|                   |          |the text     |                  |
++-------------------+----------+-------------+------------------+
+| _.version         | string   |Document     | 10               |
+|                   |          |version      |                  |
++-------------------+----------+-------------+------------------+
+
+.. [#] As per February 2024, reading the name of the configuration is still
+   marked as an experimental feature by Autodesk. This means that
+   ``_.configuration`` might break at any time.
 
 .. [#] Note: The time of day is “unstable”. The time of day will be set a few
    seconds before the save time, when saving, and on the next change of
