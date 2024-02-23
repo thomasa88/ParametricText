@@ -65,6 +65,11 @@ ParametricText includes a special parameter, ``_``, that does not exist in the F
 |               |          |component    |            |
 |               |          |containing   |            |
 |               |          |the text     |            |
++===============+==========+=============+============+
+| _.description | string   |Description  | Complex    |
+|               |          |of component | Description|
+|               |          |containing   | in the     |
+|               |          |the text     | Component  |
 +---------------+----------+-------------+------------+
 | _.date [#]_   | datetime |Date & time  | 2021-07-06 |
 |               |          |when the     |            |
