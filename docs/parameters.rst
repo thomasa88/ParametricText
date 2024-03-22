@@ -66,7 +66,7 @@ ParametricText includes a special parameter, ``_``, that does not exist in the F
 |               |          |containing   |            |
 |               |          |the text     |            |
 +===============+==========+=============+============+
-| _.description | string   |Description  | Complex    |
+| _.compdesc    | string   |Description  | Complex    |
 |               |          |of component | Description|
 |               |          |containing   | in the     |
 |               |          |the text     | Component  |
