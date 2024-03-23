@@ -25,6 +25,17 @@ https://parametrictext.readthedocs.io/en/stable/
 
 ## Development
 
+### Building the documentation
+
+```
+cd doc
+python3 -m venv venv # First time
+venv/bin/activate
+python3 -m pip install -r requirements.txt # First time
+make html
+ls _build/html
+```
+
 ### Running tests
 
 Currently, each unit test file is self-contained. Just execute each file with Python.
