@@ -1289,6 +1289,9 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     elif args.commandId == 'FusionPasteNewCommand':
         # User pasted a component, that will have a new name
         update_texts_async(text_filter=['_.component'])
+    elif args.commandId == 'FusionPropertiesCommand':  
+        # User changed component properties  
+        update_texts_async(text_filter=['_.component', '_.compdesc'])
     elif (args.commandId in ['RenameCommand',
                              'FusionRenameTimelineEntryCommand']):
         # User might have changed a component or sketch name
