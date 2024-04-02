@@ -893,6 +893,9 @@ def evaluate_text(text, sketch_text, next_version=False):
             elif member == 'compdesc':
                 value = sketch_text.parentSketch.parentComponent.description
                 string_value = True
+            elif member == 'partnum':
+                value = sketch_text.parentSketch.parentComponent.partNumber
+                string_value = True
             elif member == 'file':
                 ### Can we handle "Save as" or document copying?
                 # activeDocument.name and activeDocument.dataFile.name gives us the same
@@ -1291,7 +1294,7 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
         update_texts_async(text_filter=['_.component'])
     elif args.commandId == 'FusionPropertiesCommand':  
         # User changed component properties  
-        update_texts_async(text_filter=['_.component', '_.compdesc'])
+        update_texts_async(text_filter=['_.component', '_.compdesc', '_.partnum'])
     elif (args.commandId in ['RenameCommand',
                              'FusionRenameTimelineEntryCommand']):
         # User might have changed a component or sketch name

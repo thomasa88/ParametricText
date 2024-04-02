@@ -71,6 +71,11 @@ ParametricText includes a special parameter, ``_``, that does not exist in the F
 |               |          |containing   | in the     |
 |               |          |the text     | Component  |
 +---------------+----------+-------------+------------+
+| _.partnum     | string   |Part number  | 123-AB     |
+|               |          |of component |            |
+|               |          |containing   |            |
+|               |          |the text     |            |
++---------------+----------+-------------+------------+
 | _.date [#]_   | datetime |Date & time  | 2021-07-06 |
 |               |          |when the     |            |
 |               |          |file was     |            |
