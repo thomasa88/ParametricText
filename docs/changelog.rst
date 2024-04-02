@@ -1,8 +1,11 @@
 What's New
 ----------
--  v 2.4 (February 2024)
 
-   - Add ``_.configuration``. Autodesk feature support is still experimental.
+-  v 2.4 (April 2024)
+
+   - Add ``_.compdesc``: Component/Part description (Implemented by John Marsden)
+   - Add ``_.partnum``: Part number
+   - Add ``_.configuration``: Name of the current configuration. Autodesk feature support is still experimental.
 
 -  v 2.3.3 (January 2024)
 
