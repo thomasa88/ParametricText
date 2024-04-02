@@ -65,6 +65,11 @@ MAP_CMD_ID = 'thomasa88_ParametricText_Map'
 MIGRATE_CMD_ID = 'thomasa88_ParametricText_Migrate'
 UPDATE_CMD_ID = 'thomasa88_ParametricText_Update'
 ERROR_CMD_ID = 'thomasa88_ParametricText_ErrorNotification'
+# Custom event that other add-ins can fire using app.fireCustomEvent() to trigger
+# an update of the texts containing text parameters.
+# Note to developers: If you are doing anything more complicated than updating a few
+# user parameters in Fusion, you should likely write a script from scratch instead of
+# trying to patch together two scripts/add-ins ;).
 EXT_UPDATE_EVENT_ID = 'thomasa88_ParametricText_Ext_Update'
 PANEL_IDS = [
             'SketchModifyPanel',
