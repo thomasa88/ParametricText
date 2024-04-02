@@ -7,7 +7,8 @@ Author
 This add-in is created by Thomas Axelsson.
 
 Contributors
--------
+------------
+
 * John Marsden (ProfDoof)
 
 License
