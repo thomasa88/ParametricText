@@ -30,7 +30,7 @@ https://parametrictext.readthedocs.io/en/stable/
 ```
 cd doc
 python3 -m venv venv # First time
-venv/bin/activate
+. venv/bin/activate
 python3 -m pip install -r requirements.txt # First time
 make html
 ls _build/html
