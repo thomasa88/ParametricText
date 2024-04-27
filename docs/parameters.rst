@@ -140,6 +140,17 @@ Examples
 |                       |                  |               |without decimals      |
 |                       |                  |               |                      |
 +-----------------------+------------------+---------------+----------------------+
+| *d15* = ``5001.5``    | | ``{d15:.3g}``  | | 5e+03       |Parameter value with  |
+|                       | | ``{d15:.4g}``  | | 5002        |up to 3-5 significant |
+|                       | | ``{d15:.5g}``  | | 5001.5      |digits. Falls back to |
+|                       |                  |               |scientific notation   |
++-----------------------+------------------+---------------+----------------------+
+| *d16* = ``2300.59``   | | ``{d16:.10g}`` | | 2300.59     | Using the max        |
+| *d17* = ``2300``      | | ``{d17:.10g}`` | | 2300        | significant digits   |
+|                       |                  |               | formatter to only    |
+|                       |                  |               | show decimals when   |
+|                       |                  |               | needed.              |
++-----------------------+------------------+---------------+----------------------+
 | *_.version* = ``2``   |``{_.version:03}``| 002           |Document version,     |
 |                       |                  |               |expressed with 3      |
 |                       |                  |               |digits, with zero-    |
