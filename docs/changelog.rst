@@ -1,6 +1,10 @@
 What's New
 ----------
 
+-  v 2.4.1 (April 2024)
+
+   - Include ``g`` formatter in documentation.
+
 -  v 2.4 (April 2024)
 
    - Add ``_.compdesc``: Component/Part description (Implemented by John Marsden)
