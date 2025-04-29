@@ -34,7 +34,7 @@ class ParamSpec:
         self.format = format
 
     @staticmethod
-    def from_string(string):
+    def from_string(string: str) -> 'ParamSpec | None':
         m = PARAM_COMPONENT_PATTERN.match(string)
         if not m:
             return None
@@ -57,10 +57,10 @@ class ParamSpec:
         return ParamSpec(m.group('var'), m.group('member'),
                          string_slice, m.group('format'))
     
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"ParamSpec({self.var!r}, {self.member!r}, {self.slice!r}, {self.format!r})"
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not other:
             return False
         return (self.var == other.var and
@@ -68,5 +68,5 @@ class ParamSpec:
                 self.slice == other.slice and
                 self.format == other.format)
 
-def nullint(string):
+def nullint(string) -> int | None:
     return int(string) if string else None

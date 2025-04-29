@@ -94,13 +94,13 @@ QUICK_REF_LINES = QUICK_REF.count('<br>')
 
 # The attribute "database" version. Used to check compatibility with
 # parameters stored in the document.
-STORAGE_VERSION = 2
+STORAGE_VERSION: int = 2
 ATTRIBUTE_GROUP = 'thomasa88_ParametricText'
 
 AUTOCOMPUTE_SETTING = 'autocompute'
 
 class DialogState:
-    def __init__(self):
+    def __init__(self) -> None:
         self.last_selected_row = None
         self.addin_updating_select = False
         self.removed_texts = []
@@ -109,12 +109,12 @@ class DialogState:
         self.insert_button_values = []
 
 class InsertButtonValue:
-    def __init__(self, value, prepend=False):
+    def __init__(self, value: str, prepend: bool = False) -> None:
         self.value = value
         self.prepend = prepend
 
-app_ = None
-ui_ = None
+app_: adsk.core.Application | None = None
+ui_: adsk.core.UserInterface | None = None
 
 manifest_ = thomasa88lib.manifest.read()
 
@@ -131,32 +131,31 @@ settings_ = thomasa88lib.settings.SettingsManager({
 # This dict must be reset every time the dialog is opened,
 # as the user might have cancelled it the last time.
 # The list for each row cannot be a set(), as SketchText is not hashable.
-dialog_selection_map_ = defaultdict(list)
+dialog_selection_map_: dict[int, list[adsk.core.SketchText]] = defaultdict(list)
 
 # It seems that attributes are not saved until the command is executed,
 # so we must keep the ID in a buffer, to keep track correctly
 # We don't need to keep an ID per open document, as the command is
 # terminated (executed) and closed when the user switches document,
 # so just keep one global ID.
-dialog_next_id_ = None
+dialog_next_id_: int | None = None
 
-dialog_state_ = None
+dialog_state_: DialogState | None = None
 
 # Flag to disable add-in if there are storage mismatches.
-enabled_ = True
+enabled_: bool = True
 
 # Flag to check if add-in has been started/initialized.
-started_ = False
+started_: bool = False
 
 class WorkaroundState(enum.Enum):
     Check = 0
     Enabled = 1
     Disabled = 2
 
-text_height_workaround_state_ = WorkaroundState.Disabled
+text_height_workaround_state_: WorkaroundState = WorkaroundState.Disabled
 
-def run(context):
-    global app_
+def run(_context: str) -> None:
     global ui_
     with error_catcher_:
         app_ = adsk.core.Application.get()
@@ -228,7 +227,7 @@ def run(context):
             # Add-in was (re)loaded while Fusion 360 was running
             check_storage_version()
 
-def stop(context):
+def stop(_context: str) -> None:
     if not started_:
         return
 
@@ -247,7 +246,7 @@ def stop(context):
 
         del adsk.thomasa88_parametric_text_running
 
-def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs) -> None:
     global command_
     cmd = args.command
     command_ = cmd
@@ -359,12 +358,12 @@ def map_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
     if table_input.rowCount == 0:
         add_row(table_input, get_next_id())
 
-def truncate_text(text, length):
+def truncate_text(text: str, length: int) -> str:
     return text[0:length]
 
-def add_insert_button(table_input, insert_value, tooltip,
-                      tooltip_description='', evaluate=True, different_label=None,
-                      prepend=False, resourceFolder=''):
+def add_insert_button(table_input: adsk.core.TableCommandInput, insert_value: InsertButtonValue, tooltip:str ,
+                      tooltip_description: str = '', evaluate: bool = True, different_label: str | None = None,
+                      prepend: bool = False, resourceFolder: str = '') -> None:
     button_id = f'insert_btn_{len(dialog_state_.insert_button_values)}'
     dialog_state_.insert_button_values.append(insert_value)
     if different_label:
@@ -383,7 +382,7 @@ def add_insert_button(table_input, insert_value, tooltip,
 
 ### preview: executePreview show text from param.
 
-def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
+def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs) -> None:
     global dialog_selection_map_
     design: adsk.fusion.Design = app_.activeProduct
     table_input: adsk.core.TableCommandInput = args.inputs.itemById('table')
@@ -426,7 +425,7 @@ def map_cmd_input_changed_handler(args: adsk.core.InputChangedEventArgs):
         # Wait for the table row selection to update before updating select input
         events_manager_.delay(lambda: update_select_input(table_input, update_select_force))
 
-def map_cmd_pre_select_handler(args: adsk.core.SelectionEventArgs):
+def map_cmd_pre_select_handler(args: adsk.core.SelectionEventArgs) -> None:
     # Select all proxies pointing to the same SketchText
     selected_text_proxy = args.selection.entity
     native_sketch_text = get_native_sketch_text(selected_text_proxy)
@@ -442,18 +441,18 @@ def map_cmd_pre_select_handler(args: adsk.core.SelectionEventArgs):
     # Note: This triggers a select event for every added selection
     args.additionalEntities = additional
 
-def map_cmd_select_handler(args: adsk.core.SelectionEventArgs):
+def map_cmd_select_handler(args: adsk.core.SelectionEventArgs) -> None:
     #print("SELECT", args.selection.entity, args.selection.entity.parentSketch.name)
     dialog_state_.pending_unselects.clear()
 
-def map_cmd_unselect_handler(args: adsk.core.SelectionEventArgs):
+def map_cmd_unselect_handler(args: adsk.core.SelectionEventArgs) -> None:
     #print("UNSELECT", args.selection.entity, args.selection.entity.parentSketch.name)
     # args.additionalEntities does not seem to work for unselect and activeInput seems
     # to not be set. Just store what happened and sort it out in the input_changed
     # handler.
     dialog_state_.pending_unselects.append(args.selection.entity)
 
-def handle_select_input_change(table_input):
+def handle_select_input_change(table_input: adsk.core.TableCommandInput) -> None:
     row = table_input.selectedRow
     if dialog_state_.addin_updating_select or row == -1:
         return
@@ -487,7 +486,7 @@ def handle_select_input_change(table_input):
         # so we rebuild the selection list instead.
         update_select_input(table_input, force=True)
 
-def update_select_input(table_input, force=False):
+def update_select_input(table_input: adsk.core.TableCommandInput, force: bool = False) -> None:
     if not table_input.isValid:
         # Dialog is likely closed. This is an effect of the delay() call.
         return
@@ -509,7 +508,7 @@ def update_select_input(table_input, force=False):
         dialog_state_.last_selected_row = row
         dialog_state_.addin_updating_select = False
 
-def get_native_sketch_text(sketch_text_proxy):
+def get_native_sketch_text(sketch_text_proxy: adsk.fusion.SketchText) -> adsk.fusion.SketchText | None:
     if sketch_text_proxy is None:
         return None
     sketch_proxy = sketch_text_proxy.parentSketch
@@ -519,7 +518,7 @@ def get_native_sketch_text(sketch_text_proxy):
         return sketch_text_proxy
     return find_equal_sketch_text(native_sketch, sketch_text_proxy)
 
-def get_sketch_text_proxies(native_sketch_text):
+def get_sketch_text_proxies(native_sketch_text: adsk.fusion.SketchText) -> list[adsk.fusion.SketchText]:
     design: adsk.fusion.Design = app_.activeProduct
     native_sketch = native_sketch_text.parentSketch
     in_occurrences = design.rootComponent.allOccurrencesByComponent(native_sketch.parentComponent)
@@ -535,7 +534,7 @@ def get_sketch_text_proxies(native_sketch_text):
         sketch_text_proxies.append(sketch_text_proxy)
     return sketch_text_proxies
 
-def find_equal_sketch_text(in_sketch, sketch_text):
+def find_equal_sketch_text(in_sketch: adsk.fusion.Sketch, sketch_text: adsk.fusion.SketchText) -> adsk.fusion.SketchText | None:
     '''Used when mapping proxy <--> native'''
     # Workaround for missing SketchText.nativeObject
     # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/getting-nativeobject-for-sketchtext/td-p/9782524
@@ -551,9 +550,10 @@ def find_equal_sketch_text(in_sketch, sketch_text):
         ui_.messageBox(f'Failed to translate sketch text proxy (component instance) to native text object.\n\n'
                         'Please inform the developer of what steps you performed to trigger this error.',
                         NAME_VERSION)
+        return None
     return in_sketch.sketchTexts.item(text_index)
 
-def set_row_sketch_texts_text(sketch_texts_input, sketch_texts):
+def set_row_sketch_texts_text(sketch_texts_input: adsk.core.StringValueCommandInput, sketch_texts: list[adsk.fusion.SketchText]) -> None:
     if sketch_texts:
         total_count = 0
         count_per_sketch = defaultdict(int)
@@ -578,12 +578,12 @@ def set_row_sketch_texts_text(sketch_texts_input, sketch_texts):
         sketch_texts_input.value = '<No selections>'
         sketch_texts_input.tooltip = ''
 
-def get_text_id(input_or_str):
+def get_text_id(input_or_str: adsk.core.CommandInput | str) -> int:
     if isinstance(input_or_str, adsk.core.CommandInput):
         input_or_str = input_or_str.id
-    return input_or_str.split('_')[-1]
+    return int(input_or_str.split('_')[-1])
 
-def add_row(table_input, text_id, new_row=True, text=None):
+def add_row(table_input: adsk.core.TableCommandInput, text_id: int, new_row: bool = True, text: str | None = None) -> None:
     global dialog_selection_map_
     design: adsk.fusion.Design = app_.activeProduct
 
@@ -613,7 +613,7 @@ def add_row(table_input, text_id, new_row=True, text=None):
         select_input = table_input.parentCommand.commandInputs.itemById('select')
         select_input.clearSelection()
 
-def remove_row(table_input: adsk.core.TableCommandInput, row_index):
+def remove_row(table_input: adsk.core.TableCommandInput, row_index: int) -> None:
     text_id = get_text_id(table_input.getInputAtPosition(row_index, 0))
     table_input.deleteRow(row_index)
     dialog_state_.removed_texts.append(text_id)
@@ -624,18 +624,17 @@ def remove_row(table_input: adsk.core.TableCommandInput, row_index):
     update_select_input(table_input, force=True)
     ### Restore original texts, if cached, if we have live update. Also on unselect.
 
-def get_next_id():
+def get_next_id() -> int:
     global dialog_next_id_
     text_id = dialog_next_id_
     dialog_next_id_ += 1
     return text_id
 
-def map_cmd_execute_handler(args: adsk.core.CommandEventArgs):
-    global dialog_selection_map_
+def map_cmd_execute_handler(args: adsk.core.CommandEventArgs) -> None:
     cmd = args.command
     save(cmd)
 
-def save(cmd):
+def save(cmd: adsk.core.Command) -> None:
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
     design: adsk.fusion.Design = app_.activeProduct
 
@@ -672,7 +671,7 @@ def save(cmd):
 
     update_texts(texts=texts)
 
-def save_storage_version():
+def save_storage_version() -> None:
     design: adsk.fusion.Design = app_.activeProduct
 
     design.attributes.add(ATTRIBUTE_GROUP, 'storageVersion', str(STORAGE_VERSION))
@@ -683,7 +682,7 @@ def save_storage_version():
     design.attributes.add(ATTRIBUTE_GROUP, 'customTextValue_1', f'Please update {NAME}')
     design.attributes.add(ATTRIBUTE_GROUP, 'customTextType_1', 'custom')
 
-def save_next_id():
+def save_next_id() -> bool:
     global dialog_next_id_
     design: adsk.fusion.Design = app_.activeProduct
     next_id = dialog_next_id_
@@ -697,7 +696,7 @@ def save_next_id():
     dialog_next_id_ = None
     return True
 
-def remove_attributes(text_id):
+def remove_attributes(text_id: int) -> None:
     design = app_.activeProduct
 
     old_attrs = design.findAttributes(ATTRIBUTE_GROUP, f'hasText_{text_id}')
@@ -710,7 +709,7 @@ def remove_attributes(text_id):
 
 # Tries to update the given SketchText, if the text value has changed.
 # Returns True if the supplied text value differed from the old value.
-def set_sketch_text(sketch_text, text):
+def set_sketch_text(sketch_text: adsk.core.SketchText, text: str) -> bool:
     try:
         # Avoid triggering computations and undo history for unchanged texts
         if sketch_text.text == text:
@@ -778,7 +777,7 @@ def set_sketch_text(sketch_text, text):
             raise
     return True
 
-def check_text_height_bug(sketch_text):
+def check_text_height_bug(sketch_text: adsk.core.SketchText) -> None:
     global text_height_workaround_state_
 
     if text_height_workaround_state_ != WorkaroundState.Check:
@@ -819,9 +818,9 @@ def check_text_height_bug(sketch_text):
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
-def evaluate_text(text, sketch_text, next_version=False):
+def evaluate_text(text: str, sketch_text: adsk.core.SketchText, next_version: bool = False) -> str:
     design: adsk.fusion.Design = app_.activeProduct
-    def sub_func(subst_match):
+    def sub_func(subst_match: Match[str]) -> str:
         # https://www.python.org/dev/peps/pep-3101/
         # https://docs.python.org/3/library/string.html#formatspec
 
@@ -971,7 +970,7 @@ def evaluate_text(text, sketch_text, next_version=False):
     shown_text = SUBST_PATTERN.sub(sub_func, text)
     return shown_text
 
-def get_data_file():
+def get_data_file() -> adsk.core.DataFile:
     '''Wrapper for ActiveDocument.DataFile that tries to download the
     data from the cloud if it is not already cached.
     '''
@@ -1019,7 +1018,7 @@ def get_data_file():
 
     raise probe_error
 
-def cache_data_folder(folder):
+def cache_data_folder(folder: adsk.core.DataFolder) -> None:
     '''Forces Fusion 360 to download metadata for all documents in
     the given folder.
     
@@ -1032,7 +1031,7 @@ def cache_data_folder(folder):
     for child_folder in folder.dataFolders:
         cache_data_folder(child_folder)
 
-def probe_data_file():
+def probe_data_file() -> tuple[adsk.core.DataFile | None, Exception | None]:
     try:
         return app_.activeDocument.dataFile, None
     except RuntimeError as e:
@@ -1042,7 +1041,7 @@ def probe_data_file():
         else:
             raise
 
-def load(cmd):
+def load(cmd: adsk.core.Command) -> None:
     global dialog_selection_map_
     table_input: adsk.core.TableCommandInput = cmd.commandInputs.itemById('table')
 
@@ -1056,7 +1055,7 @@ def load(cmd):
         add_row(table_input, text_id, new_row=False,
                 text=text_info.text_value)
 
-def load_next_id():
+def load_next_id() -> None:
     global dialog_next_id_
     design: adsk.fusion.Design = app_.activeProduct
     next_id_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, 'nextId')
@@ -1074,11 +1073,11 @@ def load_next_id():
     print(f"{NAME} LOAD NEXT ID {dialog_next_id_}")
 
 class TextInfo:
-    def __init__(self):
+    def __init__(self) -> None:
         self.sketch_texts = []
         self.text_value = None
 
-def get_texts():
+def get_texts() -> dict[int, TextInfo]:
     design: adsk.fusion.Design = app_.activeProduct
 
     texts = defaultdict(TextInfo)
@@ -1104,14 +1103,15 @@ def get_texts():
     
     return texts
 
-def document_opened_handler(args: adsk.core.DocumentEventArgs):
+def document_opened_handler(args: adsk.core.DocumentEventArgs) -> None:
     if is_design_workspace():
         check_storage_version()
 
-def is_design_workspace():
+def is_design_workspace() -> bool:
     return ui_.activeWorkspace.id == 'FusionSolidEnvironment'
 
-def check_storage_version():
+def check_storage_version() -> bool:
+    '''Returns True if the storage format is compatible with the current version of the add-in.'''
     design: adsk.fusion.Design = app_.activeProduct
     storage_version_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, 'storageVersion')
     if storage_version_attr:
@@ -1161,7 +1161,7 @@ def check_storage_version():
 
 migrate_from_ = None
 migrate_to_ = None
-def migrate_storage_async(from_version, to_version):
+def migrate_storage_async(from_version: int, to_version: int) -> None:
     # Running this as a command to avoid a big list of "Set attribute" in the Undo history.
     global migrate_from_, migrate_to_
     migrate_from_ = from_version
@@ -1174,7 +1174,7 @@ def migrate_storage_async(from_version, to_version):
                                 callback=migrate_cmd_created_handler)
     migrate_cmd_def.execute()
 
-def migrate_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+def migrate_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs) -> None:
     cmd = args.command
     events_manager_.add_handler(cmd.execute, callback=migrate_cmd_execute_handler)
     cmd.isAutoExecute = True
@@ -1183,7 +1183,7 @@ def migrate_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
      #cmd.doExecute(True)
     # Check migration result
 
-def migrate_cmd_execute_handler(args: adsk.core.CommandEventArgs):
+def migrate_cmd_execute_handler(args: adsk.core.CommandEventArgs) -> None:
     from_version = migrate_from_
     to_version = migrate_to_
     design: adsk.fusion.Design = app_.activeProduct
@@ -1220,7 +1220,7 @@ def migrate_cmd_execute_handler(args: adsk.core.CommandEventArgs):
     update_texts()
     ui_.messageBox('Migration complete!')
 
-def migrate_proxy_to_native_sketch(old_attr_prefix, new_attr_prefix):
+def migrate_proxy_to_native_sketch(old_attr_prefix: str, new_attr_prefix: str) -> None:
     design: adsk.fusion.Design = app_.activeProduct
     print(f'Migrating {old_attr_prefix} to {new_attr_prefix}')
     attrs = design.findAttributes(ATTRIBUTE_GROUP, r're:' + old_attr_prefix + r'\d+')
@@ -1244,7 +1244,8 @@ def migrate_proxy_to_native_sketch(old_attr_prefix, new_attr_prefix):
             native.attributes.add(ATTRIBUTE_GROUP, f'{new_attr_prefix}{text_id}', text)
         attr.deleteMe()
 
-def dump_storage():
+def dump_storage() -> None:
+    '''Dumps all stored data to the console.'''
     design: adsk.fusion.Design = app_.activeProduct
 
     def print_attrs(attrs):
@@ -1260,7 +1261,7 @@ def dump_storage():
     print_attrs(design.findAttributes(ATTRIBUTE_GROUP, ''))
     print('-' * 50)
 
-def parent_class_names(parent_or_parents):
+def parent_class_names(parent_or_parents) -> list[str]:
     if parent_or_parents is None:
         return ["None"]
     
@@ -1273,21 +1274,21 @@ def parent_class_names(parent_or_parents):
     
     return class_names
 
-def enable_addin():
+def enable_addin() -> None:
     global enabled_
     enabled_ = True
 
-def disable_addin():
+def disable_addin() -> None:
     global enabled_
     enabled_ = False
 
-def document_saving_handler(args: adsk.core.DocumentEventArgs):
+def document_saving_handler(args: adsk.core.DocumentEventArgs) -> None:
     if ui_.activeWorkspace.id == 'FusionSolidEnvironment':
         # This cannot run async or delayed, as we must update the parameters before Fusion
         # saves the document.
         update_texts(text_filter=['_.version', '_.date'], next_version=True)
 
-def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
+def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs) -> None:
     #print(f"{NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
     if args.terminationReason != adsk.core.CommandTerminationReason.CompletedTerminationReason:
         if args.terminationReason == adsk.core.CommandTerminationReason.CancelledTerminationReason and args.commandId == 'DesignConfigurationUpdateNestedRowNameCmd':
@@ -1335,7 +1336,7 @@ def command_terminated_handler(args: adsk.core.ApplicationCommandEventArgs):
     #    save()
 
 # NOTE: This function might be called from inside a command
-def update_texts(text_filter=None, next_version=False, texts=None):
+def update_texts(text_filter: set[str] | None = None, next_version: bool = False, texts: dict[int, TextInfo] | None = None) -> None:
     if not enabled_:
         return
 
@@ -1376,7 +1377,7 @@ def update_texts(text_filter=None, next_version=False, texts=None):
                 raise
 
 async_update_queue_ = queue.Queue()
-def update_texts_async(text_filter=None, next_version=False):
+def update_texts_async(text_filter: set[str] | None = None, next_version: bool = False) -> None:
     # Running this as a command to avoid a big list of "Set attribute" in the Undo history.
     # We cannot avoid having at least one item in the Undo list:
     # https://forums.autodesk.com/t5/fusion-360-api-and-scripts/stop-custom-graphics-from-being-added-to-undo/m-p/9438477
@@ -1384,7 +1385,7 @@ def update_texts_async(text_filter=None, next_version=False):
     update_cmd_def = ui_.commandDefinitions.itemById(UPDATE_CMD_ID)
     update_cmd_def.execute()
 
-def update_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+def update_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs) -> None:
     cmd = args.command
     events_manager_.add_handler(cmd.execute, callback=update_cmd_execute_handler)
     cmd.isAutoExecute = True
@@ -1393,11 +1394,11 @@ def update_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
      #cmd.doExecute(True)
     # Check migration result
 
-def update_cmd_execute_handler(args: adsk.core.CommandEventArgs):
+def update_cmd_execute_handler(args: adsk.core.CommandEventArgs) -> None:
     update_texts(*async_update_queue_.get())
 
-error_notification_msg_ = None
-def show_error_notification(msg):
+error_notification_msg_: str | None = None
+def show_error_notification(msg: str) -> None:
     '''Show an error notification.
 
     Note: The notification and the "More info" dialog renders HTML newlines (<br>),
@@ -1412,15 +1413,15 @@ def show_error_notification(msg):
     error_cmd_def = ui_.commandDefinitions.itemById(ERROR_CMD_ID)
     error_cmd_def.execute()
 
-def error_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs):
+def error_cmd_created_handler(args: adsk.core.CommandCreatedEventArgs) -> None:
     cmd = args.command
     cmd.isAutoExecute = True
     cmd.isRepeatable = False
     events_manager_.add_handler(cmd.execute, callback=error_cmd_execute_handler)
 
-def error_cmd_execute_handler(args: adsk.core.CommandEventArgs):
+def error_cmd_execute_handler(args: adsk.core.CommandEventArgs) -> None:
     args.executeFailed = True
     args.executeFailedMessage = error_notification_msg_
 
-def ext_call_update_handler(args: adsk.core.CustomEventArgs):
+def ext_call_update_handler(args: adsk.core.CustomEventArgs) -> None:
     update_texts()

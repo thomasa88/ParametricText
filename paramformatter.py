@@ -26,7 +26,9 @@
 import math
 import fractions
 
-def mixed_frac_inch(param, design):
+import adsk.fusion
+
+def mixed_frac_inch(param: adsk.fusion.Parameter, design: adsk.fusion.Design) -> str:
     if param.unit == '':
         # Unit-less
         inch_value = param.value
