@@ -27,7 +27,10 @@ import re
 PARAM_COMPONENT_PATTERN = re.compile(r'^(?P<var>[^.\[\]:]+)(?:\.(?P<member>[^\[:]+))?(?:\[(?P<slice>[^\]]+)\])?(?::(?P<format>.*))?$')
 SLICE_PATTERN = re.compile(r'^(?P<start>-?\d*)((?P<delim>:)(?P<stop>-?\d*)?)?$')
 class ParamSpec:
-    def __init__(self, var=None, member=None, string_slice=None, format=None):
+    def __init__(self, var: str,
+                 member: str | None = None,
+                 string_slice: slice | None = None,
+                 format: str | None = None):
         self.var = var
         self.member = member
         self.slice = string_slice
