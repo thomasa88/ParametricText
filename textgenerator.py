@@ -12,7 +12,7 @@ from . import paramformatter
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
 def generate_text(format_str: str,
-                  sketch_text: af.SketchText, 
+                  sketch_text: af.SketchText | None,
                   next_version: bool | None = False) -> str:
 
     shown_text = SUBST_PATTERN.sub(lambda m: sub_func(m, sketch_text, next_version),
@@ -20,7 +20,7 @@ def generate_text(format_str: str,
     return shown_text
 
 def sub_func(subst_match: re.Match[str],
-             sketch_text: af.SketchText, 
+             sketch_text: af.SketchText | None,
             next_version: bool | None = False) -> str:
     # https://www.python.org/dev/peps/pep-3101/
     # https://docs.python.org/3/library/string.html#formatspec
@@ -53,109 +53,119 @@ def sub_func(subst_match: re.Match[str],
     is_sliceable = False
 
     if var_name == '_':
-        if member == 'version':
-            # No version information available if the document is not saved
-            if globals.app_.activeDocument.isSaved:
-                version = get_data_file().versionNumber
-            else:
-                version = 0
-            if next_version:
-                version += 1
-            value = version
-        elif member == 'date':
-            # This will provide the date and time using the local timezone
-            # We don't have to delegate to strftime(), as .format() on datetime handles this!
+        # The special parameter
+        match member:
+            case 'version':
+                # No version information available if the document is not saved
+                if globals.app_.activeDocument.isSaved:
+                    version = get_data_file().versionNumber
+                else:
+                    version = 0
+                if next_version:
+                    version += 1
+                value = version
+            case 'date':
+                # This will provide the date and time using the local timezone
+                # We don't have to delegate to strftime(), as .format() on datetime handles this!
 
-            # Format as ISO 8601 date if no options are given
-            if not options_sep:
-                options_sep = ':'
-                options = '%Y-%m-%d'
+                # Format as ISO 8601 date if no options are given
+                if not options_sep:
+                    options_sep = ':'
+                    options = '%Y-%m-%d'
 
-            if next_version:
-                # The user is saving, grab the current time. It will probably be a few
-                # seconds before the actual save time, but that should be good enough.
-                # Note: We must do this update before the save happens, to get a correct
-                # value in the save and to avoid making the document modified after the
-                # save.
-                save_time = datetime.datetime.now(tz=datetime.timezone.utc)
-            elif globals.app_.activeDocument.isSaved:
-                unix_time_utc = get_data_file().dateCreated
-                save_time = datetime.datetime.fromtimestamp(unix_time_utc,
-                                                            tz=datetime.timezone.utc)
-            else:
-                # Set a fake time until the document is saved for the first time
-                # Doing this in the user's timezone, to get midnight time correct.
-                now = datetime.datetime.now(tz=None)
-                save_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                if next_version:
+                    # The user is saving, grab the current time. It will probably be a few
+                    # seconds before the actual save time, but that should be good enough.
+                    # Note: We must do this update before the save happens, to get a correct
+                    # value in the save and to avoid making the document modified after the
+                    # save.
+                    save_time = datetime.datetime.now(tz=datetime.timezone.utc)
+                elif globals.app_.activeDocument.isSaved:
+                    unix_time_utc = get_data_file().dateCreated
+                    save_time = datetime.datetime.fromtimestamp(unix_time_utc,
+                                        tz=datetime.timezone.utc)
+                else:
+                    # Set a fake time until the document is saved for the first time
+                    # Doing this in the user's timezone, to get midnight time correct.
+                    now = datetime.datetime.now(tz=None)
+                    save_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
-            save_time_local = save_time.astimezone()
-            value = save_time_local
-        elif member == 'component':
-            # RootComponent turns into the name of the document including version number
-            # Strip it, as with _.file
-            component_name = sketch_text.parentSketch.parentComponent.name
-            component_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', component_name)
-            value = component_name
-            is_sliceable = True
-        elif member == 'compdesc':
-            value = sketch_text.parentSketch.parentComponent.description
-            is_sliceable = True
-        elif member == 'partnum':
-            value = sketch_text.parentSketch.parentComponent.partNumber
-            is_sliceable = True
-        elif member == 'file':
-            ### Can we handle "Save as" or document copying?
-            # activeDocument.name and activeDocument.dataFile.name gives us the same
-            # value, except that the former exists and gives the value "Untitled" for
-            # unsaved documents.
-            document_name = globals.app_.activeDocument.name
-            # Name string looks like this:
-            # <name> v3
-            # <name> (v3~recovered)
-            # Strip the suffix
-            document_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', document_name)
-            value = document_name
-            is_sliceable = True
-        elif member == 'sketch':
-            value = sketch_text.parentSketch.name
-            is_sliceable = True
-        elif member == 'newline':
-            value = '\n'
-        elif member == 'configuration':
-            top_table = design.configurationTopTable
-            if top_table:
-                value = top_table.activeRow.name
-            else:
-                value = '<No configuration>'
-            is_sliceable = True
-        else:
-            return f'<Unknown member of {var_name}: {member}>'
+                save_time_local = save_time.astimezone()
+                value = save_time_local
+            case 'file':
+                ### Can we handle "Save as" or document copying?
+                # activeDocument.name and activeDocument.dataFile.name gives us the same
+                # value, except that the former exists and gives the value "Untitled" for
+                # unsaved documents.
+                document_name = globals.app_.activeDocument.name
+                # Name string looks like this:
+                # <name> v3
+                # <name> (v3~recovered)
+                # Strip the suffix
+                document_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', document_name)
+                value = document_name
+                is_sliceable = True
+            case 'newline':
+                value = '\n'
+            case 'configuration':
+                top_table = design.configurationTopTable
+                if top_table:
+                    value = top_table.activeRow.name
+                else:
+                    value = '<No configuration>'
+                is_sliceable = True
+            case 'component' | 'compdesc' | 'partnum' | 'sketch':
+                is_sliceable = True
+                if sketch_text is None:
+                    # This should only happen with formatting previous that are not assigned
+                    # to a sketch.
+                    value = '<?>'
+                else:
+                    match member:
+                        case 'component':
+                            # RootComponent turns into the name of the document including version number
+                            # Strip it, as with _.file
+                            component_name = sketch_text.parentSketch.parentComponent.name
+                            component_name = DOCUMENT_NAME_VERSION_PATTERN.sub('', component_name)
+                            value = component_name
+                        case 'compdesc':
+                            value = sketch_text.parentSketch.parentComponent.description
+                        case 'partnum':
+                            value = sketch_text.parentSketch.parentComponent.partNumber
+                        case 'sketch':
+                            value = sketch_text.parentSketch.name
+                        case _:
+                            assert False, f'Unhandled member: {member}'
+            case _:
+                return f'<Unknown member of {var_name}: {member}>'
     else:
+        # A normal Fusion parameter
         param = design.allParameters.itemByName(var_name)
         if param is None:
             return f'<Unknown parameter: {var_name}>'
 
-        if member == 'value' or member == '':
-            # Make sure that the value is in the unit that the user has given
-            if param.unit == '':
-                # Unit-less
-                value = param.value
-            else:
-                # Has unit.
-                # Rounding is done to get rid of small floating point value noise,
-                # that result in "almost-correct" numbers. (42.99999999999 -> 43)
-                value = round(design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit), 10)
-        elif member == 'comment':
-            value = param.comment
-            is_sliceable = True
-        elif member == 'expr':
-            value = param.expression
-        elif member == 'unit':
-            value = param.unit
-        elif member == 'inchfrac':
-            value = paramformatter.mixed_frac_inch(param, design)
-        else:
-            return f'<Unknown member of {var_name}: {member}>'
+        match member:
+            case 'value' | '':
+                # Make sure that the value is in the unit that the user has given
+                if param.unit == '':
+                    # Unit-less
+                    value = param.value
+                else:
+                    # Has unit.
+                    # Rounding is done to get rid of small floating point value noise,
+                    # that result in "almost-correct" numbers. (42.99999999999 -> 43)
+                    value = round(design.fusionUnitsManager.convert(param.value, "internalUnits", param.unit), 10)
+            case 'comment':
+                value = param.comment
+                is_sliceable = True
+            case 'expr':
+                value = param.expression
+            case 'unit':
+                value = param.unit
+            case 'inchfrac':
+                value = paramformatter.mixed_frac_inch(param, design)
+            case _:
+                return f'<Unknown member of {var_name}: {member}>'
 
     if param_spec.slice:
         if is_sliceable:

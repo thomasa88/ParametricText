@@ -206,7 +206,6 @@ def add_insert_button(table_input: ac.TableCommandInput,
         label = insert_value.value
 
     if evaluate:
-        ## TODO: evaluate_text should handle sketch_text=None gracefully
         tooltip += '<br><br>Current value: ' + textgenerator.generate_text(insert_value.value, None)
 
     button = table_input.commandInputs.addBoolValueInput(button_id, label, False, resourceFolder, True)
