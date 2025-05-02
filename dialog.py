@@ -57,21 +57,21 @@ def create_cmd(cmd_id: str, update_fn: Callable) -> ac.CommandDefinition:
     global update_texts_
     update_texts_ = update_fn
 
-    map_cmd_def = globals.ui_.commandDefinitions.itemById(cmd_id)
-    if map_cmd_def:
-        map_cmd_def.deleteMe()
+    dialog_cmd_def = globals.ui_.commandDefinitions.itemById(cmd_id)
+    if dialog_cmd_def:
+        dialog_cmd_def.deleteMe()
 
-    map_cmd_def = globals.ui_.commandDefinitions.addButtonDefinition(cmd_id,
+    dialog_cmd_def = globals.ui_.commandDefinitions.addButtonDefinition(cmd_id,
                                                                 'Change Text Parameters',            
                                                                 'Displays the Text Parameters dialog box.\n\n'
                                                                 'Assign and edit sketch text parameters.\n\n'
                                                                 f'({globals.NAME_VERSION})',
                                                                 './resources/text_parameter')
-    globals.events_manager_.add_handler(map_cmd_def.commandCreated,
-                                    callback=map_cmd_created_handler)
-    return map_cmd_def
+    globals.events_manager_.add_handler(dialog_cmd_def.commandCreated,
+                                    callback=dialog_cmd_created_handler)
+    return dialog_cmd_def
 
-def map_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
+def dialog_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
     if not storage.is_valid():
         if not storage.check_storage_version():
             return
@@ -92,17 +92,17 @@ def map_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
     cmd.isExecutedWhenPreEmpted = True
 
     globals.events_manager_.add_handler(cmd.execute,
-                                callback=map_cmd_execute_handler)
+                                callback=dialog_cmd_execute_handler)
 
     globals.events_manager_.add_handler(cmd.inputChanged,
-                                callback=map_cmd_input_changed_handler)
+                                callback=dialog_cmd_input_changed_handler)
 
     globals.events_manager_.add_handler(cmd.preSelect,
-                                callback=map_cmd_pre_select_handler)
+                                callback=dialog_cmd_pre_select_handler)
     globals.events_manager_.add_handler(cmd.select,
-                                callback=map_cmd_select_handler)
+                                callback=dialog_cmd_select_handler)
     globals.events_manager_.add_handler(cmd.unselect,
-                                callback=map_cmd_unselect_handler)
+                                callback=dialog_cmd_unselect_handler)
 
     about = cmd.commandInputs.addTextBoxCommandInput('about', '', f'<font size="4"><b>{globals.NAME_VERSION}</b></font>', 2, True)
     about.isFullWidth = True
@@ -207,7 +207,7 @@ def add_insert_button(table_input: ac.TableCommandInput,
 
     if evaluate:
         ## TODO: evaluate_text should handle sketch_text=None gracefully
-        tooltip += '<br><br>Current value: ' + textgenerator.evaluate_text(insert_value.value, None)
+        tooltip += '<br><br>Current value: ' + textgenerator.generate_text(insert_value.value, None)
 
     button = table_input.commandInputs.addBoolValueInput(button_id, label, False, resourceFolder, True)
     button.tooltip = tooltip
@@ -216,7 +216,7 @@ def add_insert_button(table_input: ac.TableCommandInput,
 
 ### preview: executePreview show text from param.
 
-def map_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
+def dialog_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
     table_input: ac.TableCommandInput = args.inputs.itemById('table')
     need_update_select_input = False
     update_select_force = False
@@ -256,7 +256,7 @@ def map_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
         # Wait for the table row selection to update before updating select input
         globals.events_manager_.delay(lambda: update_select_input(table_input, update_select_force))
 
-def map_cmd_pre_select_handler(args: ac.SelectionEventArgs) -> None:
+def dialog_cmd_pre_select_handler(args: ac.SelectionEventArgs) -> None:
     # Select all proxies pointing to the same SketchText
     selected_text_proxy = args.selection.entity
     native_sketch_text = get_native_sketch_text(selected_text_proxy)
@@ -272,11 +272,11 @@ def map_cmd_pre_select_handler(args: ac.SelectionEventArgs) -> None:
     # Note: This triggers a select event for every added selection
     args.additionalEntities = additional
 
-def map_cmd_select_handler(args: ac.SelectionEventArgs) -> None:
+def dialog_cmd_select_handler(args: ac.SelectionEventArgs) -> None:
     #print("SELECT", args.selection.entity, args.selection.entity.parentSketch.name)
     dialog_state_.pending_unselects.clear()
 
-def map_cmd_unselect_handler(args: ac.SelectionEventArgs) -> None:
+def dialog_cmd_unselect_handler(args: ac.SelectionEventArgs) -> None:
     #print("UNSELECT", args.selection.entity, args.selection.entity.parentSketch.name)
     # args.additionalEntities does not seem to work for unselect and activeInput seems
     # to not be set. Just store what happened and sort it out in the input_changed
@@ -452,7 +452,7 @@ def create_id() -> int:
     dialog_state_.next_id += 1
     return text_id
 
-def map_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
+def dialog_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
     global dialog_state_
 
     cmd = args.command

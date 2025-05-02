@@ -96,14 +96,14 @@ def run(_context: str) -> None:
         if globals.ui_.activeCommand == DIALOG_CMD_ID:
             globals.ui_.terminateActiveCommand()
 
-        map_cmd_def = dialog.create_cmd(DIALOG_CMD_ID, update_texts)
+        dialog_cmd_def = dialog.create_cmd(DIALOG_CMD_ID, update_texts)
 
         for panel_id in PANEL_IDS:
             panel = globals.ui_.allToolbarPanels.itemById(panel_id)
             old_control = panel.controls.itemById(DIALOG_CMD_ID)
             if old_control:
                 old_control.deleteMe()
-            panel.controls.addCommand(map_cmd_def, 'ChangeParameterCommand', False)
+            panel.controls.addCommand(dialog_cmd_def, 'ChangeParameterCommand', False)
 
         globals.events_manager_.add_handler(globals.app_.documentSaving, callback=document_saving_handler)
         globals.events_manager_.add_handler(globals.ui_.commandTerminated, callback=command_terminated_handler)
@@ -145,9 +145,9 @@ def stop(_context: str) -> None:
             if control:
                 control.deleteMe()
         
-        map_cmd_def = panel.controls.itemById(DIALOG_CMD_ID)
-        if map_cmd_def:
-            map_cmd_def.deleteMe()
+        dialog_cmd_def = panel.controls.itemById(DIALOG_CMD_ID)
+        if dialog_cmd_def:
+            dialog_cmd_def.deleteMe()
 
         del adsk.thomasa88_parametric_text_running
 
@@ -343,7 +343,7 @@ def update_texts(text_filter: list[str] | None = None,
             for sketch_text in text_info.sketch_texts:
                 # Must evaluate for every sketch for every text, in case
                 # the user has used the component name parameter.
-                text_updated = set_sketch_text(sketch_text, textgenerator.evaluate_text(format_str, sketch_text, next_version))
+                text_updated = set_sketch_text(sketch_text, textgenerator.generate_text(format_str, sketch_text, next_version))
                 if text_updated:
                     update_count += 1
 
