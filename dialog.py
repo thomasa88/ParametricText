@@ -338,15 +338,13 @@ def update_select_input(table_input: ac.TableCommandInput, force: bool = False) 
         dialog_state_.last_selected_row = row
         dialog_state_.addin_updating_select = False
 
-def get_native_sketch_text(sketch_text_proxy: af.SketchText) -> af.SketchText | None:
+def get_native_sketch_text(sketch_text_proxy: af.SketchText | None) -> af.SketchText | None:
     if sketch_text_proxy is None:
         return None
-    sketch_proxy = sketch_text_proxy.parentSketch
-    native_sketch = sketch_proxy.nativeObject
-    if native_sketch is None:
-        # This is already a native object (likely a root component sketch)
+    native = sketch_text_proxy.nativeObject
+    if native is None:
         return sketch_text_proxy
-    return find_equal_sketch_text(native_sketch, sketch_text_proxy)
+    return native
 
 def get_sketch_text_proxies(native_sketch_text: af.SketchText) -> list[af.SketchText]:
     design: af.Design = globals.app_.activeProduct
@@ -357,31 +355,11 @@ def get_sketch_text_proxies(native_sketch_text: af.SketchText) -> list[af.Sketch
         # Root level sketch. There are no occurences and there will be no proxies.
         return [native_sketch_text]
 
-    sketch_text_proxies = []
+    sketch_text_proxies: list[af.SketchText] = []
     for occurrence in in_occurrences:
-        sketch_proxy = native_sketch.createForAssemblyContext(occurrence)
-        sketch_text_proxy = find_equal_sketch_text(sketch_proxy, native_sketch_text)
+        sketch_text_proxy = native_sketch_text.createForAssemblyContext(occurrence)
         sketch_text_proxies.append(sketch_text_proxy)
     return sketch_text_proxies
-
-def find_equal_sketch_text(in_sketch: af.Sketch, sketch_text: af.SketchText) -> af.SketchText | None:
-    '''Used when mapping proxy <--> native'''
-    # Workaround for missing SketchText.nativeObject
-    # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/getting-nativeobject-for-sketchtext/td-p/9782524
-
-    # Assuming the texts will be returned in the same order
-    # from both proxy and native sketch.
-    text_index = 0
-    for i, st in enumerate(sketch_text.parentSketch.sketchTexts):
-        if st == sketch_text:
-            text_index = i
-            break
-    else:
-        globals.ui_.messageBox('Failed to translate sketch text proxy (component instance) to native text object.\n\n'
-                        'Please inform the developer of what steps you performed to trigger this error.',
-                        globals.NAME_VERSION)
-        return None
-    return in_sketch.sketchTexts.item(text_index)
 
 def set_row_sketch_texts_text(sketch_texts_input: ac.StringValueCommandInput, sketch_texts: list[af.SketchText]) -> None:
     if sketch_texts:
