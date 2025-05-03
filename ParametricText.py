@@ -347,7 +347,7 @@ def update_texts(text_filter: list[str] | None = None,
                 if text_updated:
                     update_count += 1
 
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     # It is illegal to do "Compute All" in a non-parametric design.
     if (update_count > 0 and
         design.designType == af.DesignTypes.ParametricDesignType and

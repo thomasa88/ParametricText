@@ -35,7 +35,7 @@ class TextGeneratorTest(unittest.TestCase):
                 ),
             ),
         )
-        textgenerator.globals = NS(app_=app)
+        textgenerator.globals = NS(app_=app, get_design=lambda: design)
 
         self.sketch_text = NS(
             parentSketch=NS(
@@ -48,7 +48,6 @@ class TextGeneratorTest(unittest.TestCase):
             )
         )
 
-    
     def g(self, text: str):
         return textgenerator.generate_text(text, self.sketch_text)
 

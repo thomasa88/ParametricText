@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import datetime
 import re
-from typing import TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, cast
 import sys
 
 if TYPE_CHECKING:
@@ -38,6 +38,8 @@ if 'unittest' not in sys.modules:
     from . import paramformatter
 else:
     import paramparser
+    globals: Any
+    paramformatter: Any
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
@@ -55,8 +57,8 @@ def sub_func(subst_match: re.Match[str],
     # https://www.python.org/dev/peps/pep-3101/
     # https://docs.python.org/3/library/string.html#formatspec
 
-    design: af.Design = globals.app_.activeProduct
-   
+    design = globals.get_design()
+
     param_string = subst_match.group(1)
     param_spec = paramparser.ParamSpec.from_string(param_string)
 

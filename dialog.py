@@ -103,7 +103,7 @@ def dialog_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
     global dialog_state_
     dialog_state_ = DialogState(storage.load_next_id())
 
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     cmd = args.command
     dialog_state_.cmd = cmd
 
@@ -370,7 +370,7 @@ def get_native_sketch_text(sketch_text_proxy: af.SketchText | None) -> af.Sketch
     return native
 
 def get_sketch_text_proxies(native_sketch_text: af.SketchText) -> list[af.SketchText]:
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     native_sketch = native_sketch_text.parentSketch
     in_occurrences = design.rootComponent.allOccurrencesByComponent(native_sketch.parentComponent)
 

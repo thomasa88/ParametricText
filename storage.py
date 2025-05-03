@@ -51,7 +51,14 @@ def is_valid() -> bool:
     return _is_valid_
 
 def load_texts() -> dict[int, TextInfo]:
-    design: af.Design = globals.app_.activeProduct
+    # TODO: Version 3 of ParametricText should store data in Document instead of Design,
+    #       as there are sketches and user parameters in multiple product types.
+    #       The hiearchy:
+    #          * Document
+    #            * Design
+    #            * Sheet metal pattern (multiple)
+    #            * more?
+    design = globals.get_design()
 
     texts = defaultdict(TextInfo)
 
@@ -78,7 +85,7 @@ def load_texts() -> dict[int, TextInfo]:
 
 
 def save_texts(texts: dict[int, TextInfo], removed_text_ids: list[int]) -> None:
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
 
     save_storage_version()
     
@@ -94,7 +101,7 @@ def save_texts(texts: dict[int, TextInfo], removed_text_ids: list[int]) -> None:
         remove_attributes(text_id)
 
 def save_storage_version() -> None:
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
 
     design.attributes.add(ATTRIBUTE_GROUP, 'storageVersion', str(STORAGE_VERSION))
 
@@ -106,7 +113,7 @@ def save_storage_version() -> None:
 
 def load_next_id() -> int:
     next_id = 0
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     next_id_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, 'nextId')
     if next_id_attr:
         if next_id_attr.value is None or next_id_attr.value == 'None':
@@ -121,7 +128,7 @@ def load_next_id() -> int:
     return next_id
 
 def save_next_id(next_id: int) -> bool:
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     print(f"{globals.ADDIN_NAME} SAVE NEXT ID {next_id}")
     if next_id is None:
         globals.ui_.messageBox(f'Failed to save text ID counter. Save failed.\n\n'
@@ -132,7 +139,7 @@ def save_next_id(next_id: int) -> bool:
     return True
 
 def remove_attributes(text_id: int) -> None:
-    design = globals.app_.activeProduct
+    design = globals.get_design()
 
     old_attrs = design.findAttributes(ATTRIBUTE_GROUP, f'hasText_{text_id}')
     for old_attr in old_attrs:
@@ -145,7 +152,7 @@ def remove_attributes(text_id: int) -> None:
 ##### update migration logic!
 def check_storage_version() -> bool:
     '''Returns True if the storage format is compatible with the current version of the add-in.'''
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     storage_version_attr = design.attributes.itemByName(ATTRIBUTE_GROUP, 'storageVersion')
     if storage_version_attr:
         file_db_version = int(storage_version_attr.value)
@@ -219,7 +226,7 @@ def migrate_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
 def migrate_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
     from_version = migrate_from_
     to_version = migrate_to_
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     print(f'{globals.ADDIN_NAME} Migrating storage: {from_version} -> {to_version}')
     dump_storage()
     if from_version == 1 and to_version == 2:
@@ -254,7 +261,7 @@ def migrate_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
     globals.ui_.messageBox('Migration complete!')
 
 def migrate_proxy_to_native_sketch(old_attr_prefix: str, new_attr_prefix: str) -> None:
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
     print(f'Migrating {old_attr_prefix} to {new_attr_prefix}')
     attrs = design.findAttributes(ATTRIBUTE_GROUP, r're:' + old_attr_prefix + r'\d+')
     for attr in attrs:
@@ -279,7 +286,7 @@ def migrate_proxy_to_native_sketch(old_attr_prefix: str, new_attr_prefix: str) -
 
 def dump_storage() -> None:
     '''Dumps all stored data to the console.'''
-    design: af.Design = globals.app_.activeProduct
+    design = globals.get_design()
 
     def print_attrs(attrs):
         for attr in attrs:

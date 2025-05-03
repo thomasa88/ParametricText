@@ -25,6 +25,7 @@ import importlib
 from typing import cast
 
 import adsk.core as ac
+import adsk.fusion as af
 
 ADDIN_NAME = 'ParametricText'
 
@@ -73,3 +74,10 @@ def extract_text_id(input_or_str: ac.CommandInput | str) -> int:
     if isinstance(input_or_str, ac.CommandInput):
         input_or_str = cast(ac.CommandInput, input_or_str).id
     return int(input_or_str.split('_')[-1])
+
+def get_design() -> af.Design:
+    design = af.Design.cast(
+        app_.activeDocument.products.itemByProductType('DesignProductType'))
+    if design is None:
+        raise Exception('Failed to get Design object')
+    return design
