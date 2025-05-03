@@ -21,16 +21,23 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from __future__ import annotations
+
 import datetime
 import re
-from typing import cast
+from typing import TYPE_CHECKING, cast
+import sys
 
-import adsk.core as ac
-import adsk.fusion as af
+if TYPE_CHECKING:
+    import adsk.core as ac
+    import adsk.fusion as af
 
-from . import globals
-from . import paramparser
-from . import paramformatter
+if 'unittest' not in sys.modules:
+    from . import globals
+    from . import paramparser
+    from . import paramformatter
+else:
+    import paramparser
 
 SUBST_PATTERN = re.compile(r'{([^}]+)}')
 DOCUMENT_NAME_VERSION_PATTERN = re.compile(r' (?:v\d+|\(v\d+.*?\))$')
