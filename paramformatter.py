@@ -23,12 +23,15 @@
 
 # Helper functions for formatting parameter values
 
+from __future__ import annotations
 import math
 import fractions
+from typing import TYPE_CHECKING
 
-import adsk.fusion
+if TYPE_CHECKING:
+    import adsk.fusion as af
 
-def mixed_frac_inch(param: adsk.fusion.Parameter, design: adsk.fusion.Design) -> str:
+def mixed_frac_inch(param: af.Parameter, design: af.Design) -> str:
     if param.unit == '':
         # Unit-less
         inch_value = param.value

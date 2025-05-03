@@ -26,8 +26,8 @@ class ParamFormatterTest(unittest.TestCase):
             (0.203125, '13/64"')
             ]
         for v in values:
-            print(f'{v[0]:<8} | {v[1]}')
-            self.assertEqual(mixed_frac_inch(self.FakeParam(v[0]), None), v[1])
+            self.assertEqual(mixed_frac_inch(self.FakeParam(v[0]), None), v[1],
+                             f'{v[0]:<8} | {v[1]}')
 
 if __name__ == '__main__':
     unittest.main()

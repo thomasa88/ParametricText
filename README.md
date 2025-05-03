@@ -36,4 +36,4 @@ ls _build/html
 
 ### Running tests
 
-Currently, each unit test file is self-contained. Just execute each file with Python.
+Run `python3 -m unittest` to execute all unit tests.
