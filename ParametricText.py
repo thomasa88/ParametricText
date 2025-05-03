@@ -249,7 +249,7 @@ def check_text_height_bug(sketch_text: af.SketchText) -> None:
     
     height_is_set = math.isclose(sketch_text.height, test_height, rel_tol=0.1)
     text_height_workaround_state_ = WorkaroundState.Disabled if height_is_set else WorkaroundState.Enabled
-    print(f"{globals.ADDIN_NAME} TEXT HEIGHT WORKAROUND:", text_height_workaround_state_)
+    globals.app_.log(f"{globals.ADDIN_NAME} TEXT HEIGHT WORKAROUND: {text_height_workaround_state_}")
 
     # Alternative method: Scan the parameters and find the changed value. We might need two tries, as
     # we might be setting the value the user set initially.
@@ -274,7 +274,7 @@ def document_saving_handler(args: ac.DocumentEventArgs) -> None:
         update_texts(text_filter=['_.version', '_.date'], next_version=True)
 
 def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
-    #print(f"{globals.ADDIN_NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
+    #globals.app_.log(f"{globals.ADDIN_NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
     if args.terminationReason != ac.CommandTerminationReason.CompletedTerminationReason:
         if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason and args.commandId == 'DesignConfigurationUpdateNestedRowNameCmd':
             # User renamed a configuration
