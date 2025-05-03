@@ -1,5 +1,3 @@
-<a href="https://apps.autodesk.com/FUSION/en/Detail/Index?id=2114937992453312456&amp;appLang=en&amp;os=Win64"><img align=right src="https://badgen.net/runkit/thomasa88/autodesk-rating-badge/branches/master/2114937992453312456"></a>
-
 # ![](resources/logo/32x32.png) ParametricText
 
 ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text Parameters* in sketches.
