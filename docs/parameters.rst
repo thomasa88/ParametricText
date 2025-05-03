@@ -16,7 +16,11 @@ Document Parameters
 
 .. FIX issue about default number of decimals! update the table
 
-Both model and user parameters can be used as input for the parametric text. The following properties are accessible.
+Both model and user parameters can be used as input for the parametric text. 
+
+Currently, parameters set in the sheet metal flat pattern mode are not accessible from text parameters.
+
+The following parameter properties are accessible.
 
 +-------------------+----------+------------+----------+
 | Property          | Type     | Description|Example   |

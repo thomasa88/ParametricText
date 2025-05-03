@@ -76,8 +76,5 @@ def extract_text_id(input_or_str: ac.CommandInput | str) -> int:
     return int(input_or_str.split('_')[-1])
 
 def get_design() -> af.Design:
-    design = af.Design.cast(
-        app_.activeDocument.products.itemByProductType('DesignProductType'))
-    if design is None:
-        raise Exception('Failed to get Design object')
+    design = af.FusionDocument.cast(app_.activeDocument).design
     return design

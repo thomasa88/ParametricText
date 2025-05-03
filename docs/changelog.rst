@@ -1,6 +1,10 @@
 What's New
 ----------
 
+- v NEXT (TBA)
+
+   - Partial support for text parameters in sheet metal flat pattern sketches. (#86)
+
 -  v 2.4.1 (April 2024)
 
    - Include ``g`` formatter in documentation.

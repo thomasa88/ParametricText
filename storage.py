@@ -72,17 +72,27 @@ def load_texts() -> dict[int, TextInfo]:
         text_info.format_str = value_attr.value
 
         # Get all sketch texts belonging to the attribute
-        has_attrs = design.findAttributes(ATTRIBUTE_GROUP, f'hasText_{text_id}')
+        has_attrs = find_attributes_in_all_products(f'hasText_{text_id}')
         for has_attr in has_attrs:
             sketch_texts = text_info.sketch_texts
             if has_attr.parent:
-                sketch_texts.append(has_attr.parent)        
+                sketch_texts.append(af.SketchText.cast(has_attr.parent))
             if has_attr.otherParents:
                 for other_parent in has_attr.otherParents:
-                    sketch_texts.append(other_parent)
+                    sketch_texts.append(af.SketchText.cast(other_parent))
     
     return texts
 
+def find_attributes_in_all_products(attr_name: str) -> list[ac.Attribute]:
+    # Flat pattern sketches will be in the flat pattern product(s),
+    # so need to loop all, not just Design.
+    # Design is Design and FlatPatternProduct is inherited from Design.
+    products = [p for p in globals.app_.activeDocument.products
+                if isinstance(p, af.Design)]
+    has_attrs = []
+    for product in products:
+        has_attrs += product.findAttributes(ATTRIBUTE_GROUP, attr_name)
+    return has_attrs
 
 def save_texts(texts: dict[int, TextInfo], removed_text_ids: list[int]) -> None:
     design = globals.get_design()
@@ -92,7 +102,8 @@ def save_texts(texts: dict[int, TextInfo], removed_text_ids: list[int]) -> None:
     for text_id, text_info in texts.items():
         remove_attributes(text_id)
 
-        design.attributes.add(ATTRIBUTE_GROUP, f'textValue_{text_id}', text_info.format_str)
+        design.attributes.add(ATTRIBUTE_GROUP, f'textValue_{text_id}',
+                              text_info.format_str)
     
         for sketch_text in text_info.sketch_texts:
             sketch_text.attributes.add(ATTRIBUTE_GROUP, f'hasText_{text_id}', '')
@@ -141,7 +152,7 @@ def save_next_id(next_id: int) -> bool:
 def remove_attributes(text_id: int) -> None:
     design = globals.get_design()
 
-    old_attrs = design.findAttributes(ATTRIBUTE_GROUP, f'hasText_{text_id}')
+    old_attrs = find_attributes_in_all_products(f'hasText_{text_id}')
     for old_attr in old_attrs:
         old_attr.deleteMe()
 
@@ -298,7 +309,7 @@ def dump_storage() -> None:
     globals.app_.log('Design attributes')
     print_attrs(design.attributes.itemsByGroup(ATTRIBUTE_GROUP))
     globals.app_.log('Entity attributes')
-    print_attrs(design.findAttributes(ATTRIBUTE_GROUP, ''))
+    print_attrs(find_attributes_in_all_products(''))
     globals.app_.log('-' * 50)
 
 def parent_class_names(parent_or_parents) -> list[str]:

@@ -51,7 +51,7 @@ class DialogState:
         self.addin_updating_select: bool = False
         self.removed_texts: list[int] = []
         # Keep a list of unselects, to handle user unselecting multiple at once (window selection)
-        self.pending_unselects: list[ac.Base] = []
+        self.pending_unselects: list[af.SketchText] = []
         self.insert_button_values: list[InsertButtonValue] = []
         
         # Contains selections for all rows of the currently active dialog
@@ -265,7 +265,8 @@ def dialog_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
         need_update_select_input = True
     elif args.input.id.startswith('clear_btn_'):
         text_id = globals.extract_text_id(args.input)
-        sketch_texts_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
+        sketch_texts_input = ac.StringValueCommandInput.cast(
+            table_input.commandInputs.itemById(f'sketchtexts_{text_id}'))
         sketch_texts = dialog_state_.selection_map[text_id]
         sketch_texts.clear()
         set_row_sketch_texts_text(sketch_texts_input, sketch_texts)
@@ -280,7 +281,7 @@ def dialog_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
 
 def dialog_cmd_pre_select_handler(args: ac.SelectionEventArgs) -> None:
     # Select all proxies pointing to the same SketchText
-    selected_text_proxy = args.selection.entity
+    selected_text_proxy = af.SketchText.cast(args.selection.entity)
     native_sketch_text = get_native_sketch_text(selected_text_proxy)
     sketch_text_proxies = get_sketch_text_proxies(native_sketch_text)
     additional = ac.ObjectCollection.create()
@@ -303,16 +304,18 @@ def dialog_cmd_unselect_handler(args: ac.SelectionEventArgs) -> None:
     # args.additionalEntities does not seem to work for unselect and activeInput seems
     # to not be set. Just store what happened and sort it out in the input_changed
     # handler.
-    dialog_state_.pending_unselects.append(args.selection.entity)
+    dialog_state_.pending_unselects.append(af.SketchText.cast(args.selection.entity))
 
 def handle_select_input_change(table_input: ac.TableCommandInput) -> None:
     row = table_input.selectedRow
     if dialog_state_.addin_updating_select or row == -1:
         return
 
-    select_input = dialog_state_.cmd.commandInputs.itemById('select')
+    select_input = ac.SelectionCommandInput.cast(
+        dialog_state_.cmd.commandInputs.itemById('select'))
     text_id = globals.extract_text_id(table_input.getInputAtPosition(row, 0))
-    sketch_texts_input = table_input.commandInputs.itemById(f'sketchtexts_{text_id}')
+    sketch_texts_input = ac.StringValueCommandInput.cast(
+        table_input.commandInputs.itemById(f'sketchtexts_{text_id}'))
     
     sketch_texts = dialog_state_.selection_map[text_id]
     sketch_texts.clear()
@@ -320,11 +323,11 @@ def handle_select_input_change(table_input: ac.TableCommandInput) -> None:
                                      for u in dialog_state_.pending_unselects]
     for i in range(select_input.selectionCount):
         # The selection will give us a proxy to the instance that the user selected
-        sketch_text_proxy = select_input.selection(i).entity
+        sketch_text_proxy = af.SketchText.cast(select_input.selection(i).entity)
         native_sketch_text = get_native_sketch_text(sketch_text_proxy)
         if not native_sketch_text:
             # This should not happen, but handle it gracefully
-            globals.app_.log(f"{globals.ADDIN_NAME} could not get native skech text for {sketch_text_proxy.parentSketch.name}")
+            globals.app_.log(f"{globals.ADDIN_NAME} could not get native skech text for {get_sketch_sym_name(sketch_text_proxy)}")
             continue
         if (native_sketch_text not in sketch_texts and
             native_sketch_text not in pending_unselect_sketch_texts):
@@ -390,7 +393,7 @@ def set_row_sketch_texts_text(sketch_texts_input: ac.StringValueCommandInput, sk
         count_per_sketch = defaultdict(int)
         for sketch_text in sketch_texts:
             # Name is unique
-            count_per_sketch[sketch_text.parentSketch.name] += 1
+            count_per_sketch[get_sketch_sym_name(sketch_text)] += 1
             total_count += 1
         display_names = []
         for sketch_name, count in count_per_sketch.items():
@@ -408,6 +411,17 @@ def set_row_sketch_texts_text(sketch_texts_input: ac.StringValueCommandInput, sk
     else:
         sketch_texts_input.value = '<No selections>'
         sketch_texts_input.tooltip = ''
+
+def get_sketch_sym_name(sketch_text: af.SketchText) -> str:
+    '''Get a unique "symbolic" name for the sketch. The name is not
+    guaranteed to be unique'''
+    sketch = sketch_text.parentSketch
+    name = sketch.name
+    # Sketches in different products can have the same name, so
+    # try to make it unique.
+    if isinstance(sketch.parentComponent.parentDesign, af.FlatPatternProduct):
+        name = f'F:{name}'
+    return name
 
 def add_row(table_input: ac.TableCommandInput, text_id: int, new_row: bool = True, format_str: str | None = None) -> None:
     sketch_texts = dialog_state_.selection_map[text_id]
@@ -461,7 +475,7 @@ def dialog_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
         # TODO: Don't fail silently here
         return
 
-    table_input: ac.TableCommandInput = cmd.commandInputs.itemById('table')
+    table_input = ac.TableCommandInput.cast(cmd.commandInputs.itemById('table'))
     texts = defaultdict(storage.TextInfo)
     for row_index in range(table_input.rowCount):
         text_id = globals.extract_text_id(table_input.getInputAtPosition(row_index, 0))
