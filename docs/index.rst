@@ -19,7 +19,7 @@ ParametricText
    about
    addins
              
-ParametricText is an Autodesk® Fusion 360™ add-in for creating *Text
+ParametricText is an Autodesk® Fusion add-in for creating *Text
 Parameters* in sketches.
 
 Text parameters can be pure text or use parameter values by using a

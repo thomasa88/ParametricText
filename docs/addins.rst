@@ -1,7 +1,7 @@
-More Fusion 360™ Add-ins
+More Fusion Add-ins
 ========================
 
-`My Fusion 360™ app store
+`My Fusion app store
 page <https://apps.autodesk.com/en/Publisher/PublisherHomepage?ID=JLH9M8296BET>`__
 
 `All my add-ins on

@@ -4,9 +4,9 @@ Issues/Bugs
 Known Limitations
 -----------------
 
-The following are known limitations that cannot be fixed, due to the Fusion 360™ add-in interface.
+The following are known limitations that cannot be fixed, due to the Fusion add-in interface.
 
-- :kbd:`{` and :kbd:`}` cannot be entered in string inputs in Fusion 360™ on keyboards where they require :kbd:`AltGr` to be pressed.
+- :kbd:`{` and :kbd:`}` cannot be entered in string inputs in Fusion on keyboards where they require :kbd:`AltGr` to be pressed.
 
   - Workaround is to use the :guilabel:`{}` buttons in the dialog.
 

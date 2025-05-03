@@ -49,17 +49,17 @@ The following parameter properties are accessible.
 |                   |          |inch        |          |
 +-------------------+----------+------------+----------+
 
-Compare the above properties with the Fusion 360™ parameters dialog, as shown below.
+Compare the above properties with the Fusion parameters dialog, as shown below.
 
 .. figure:: images/parameters_dialog.png
-   :alt: Fusion 360™ parameters dialog screenshot
+   :alt: Fusion parameters dialog screenshot
 
-   Fusion 360™ Parameters Dialog
+   Fusion Parameters Dialog
 
 The Special Parameter (_)
 -------------------------
 
-ParametricText includes a special parameter, ``_``, that does not exist in the Fusion 360™ parameters dialog. ``_`` provides values from the document and its content.
+ParametricText includes a special parameter, ``_``, that does not exist in the Fusion parameters dialog. ``_`` provides values from the document and its content.
 
 +-------------------+----------+-------------+------------------+
 | Property          | Type     | Description |Example           |

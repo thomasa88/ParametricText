@@ -3,7 +3,7 @@ Quick Start
 
 #. Install ParametricText from the `Autodesk® App Store <https://apps.autodesk.com/All/en/List/Search?isAppSearch=True&searchboxstore=All&facet=&collection=&sort=&query=parametrictext>`__. (See :ref:`Installation` for details and alternatives.)
 
-#. Start Fusion 360™.
+#. Start Fusion.
 
 #. Create a sketch and add a text that says "PARAM".
 

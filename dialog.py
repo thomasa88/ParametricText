@@ -155,13 +155,13 @@ def dialog_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
 
     add_insert_button(table_input, InsertButtonValue('{}', prepend=True), 'Prepend curly braces',
                       'Inserts curly braces at the beginning of the text box of the currently selected row.\n\n'
-                      'This button allows insertion of curly braces when Fusion 360™ '
+                      'This button allows insertion of curly braces when Fusion '
                       'prevents insertion when using a keyboard layout that requires AltGr to be pressed.',
                       override_label='{}+',
                       evaluate=False, resourceFolder='./resources/prepend_braces')
     add_insert_button(table_input, InsertButtonValue('{}'), 'Append curly braces',
                       'Inserts curly braces at the end of the text box of the currently selected row.\n\n'
-                      'This button allows insertion of curly braces when Fusion 360™ '
+                      'This button allows insertion of curly braces when Fusion '
                       'prevents insertion when using a keyboard layout that requires AltGr to be pressed.',
                       override_label='+{}',
                       evaluate=False, resourceFolder='./resources/append_braces')

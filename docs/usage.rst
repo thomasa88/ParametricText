@@ -21,7 +21,7 @@ Parameter Dialog
 
  |img_dialog|
 
-.. .. note:: Depending on the state of Fusion 360™'s add-in functionality,
+.. .. note:: Depending on the state of Fusion's add-in functionality,
           not all properties of a text are retained when a text is
           updated by an add-in. It is therefore recommended to assign
           a text parameter value to a text before customizing the text.
@@ -63,7 +63,7 @@ contain values from parameters and the document. See
                          :class: guilabel
 
 
-Fusion 360™ does not support writing curly braces on all international
+Fusion does not support writing curly braces on all international
 keyboard layouts. |btn_prepend_braces| and |btn_append_braces| can be
 used instead, to add curly braces to the beginning and end of the
 currently selected text box.
@@ -82,4 +82,4 @@ Disabling ParametricText
 ------------------------
 
 The add-in can be temporarily disabled using the *Scripts and Add-ins*
-dialog. Press :kbd:`Shift+S` in Fusion 360™ and go to the *Add-Ins* tab.
+dialog. Press :kbd:`Shift+S` in Fusion and go to the *Add-Ins* tab.
