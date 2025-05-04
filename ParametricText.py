@@ -26,9 +26,7 @@
 
 from __future__ import annotations
 
-import enum
 import queue
-import math
 from typing import Iterable
 
 import adsk
@@ -69,6 +67,8 @@ PANEL_IDS = [
 # Flag to check if add-in has been started/initialized.
 started_: bool = False
 
+running_compute_all_: bool = False
+
 def run(_context: str) -> None:
     with globals.error_catcher_:
         globals.app_ = ac.Application.get()
@@ -103,6 +103,7 @@ def run(_context: str) -> None:
 
         globals.events_manager_.add_handler(globals.app_.documentSaving, callback=document_saving_handler)
         globals.events_manager_.add_handler(globals.ui_.commandTerminated, callback=command_terminated_handler)
+        globals.events_manager_.add_handler(globals.ui_.commandStarting, callback=command_starting_handler)
 
         globals.events_manager_.add_handler(globals.app_.documentOpened, callback=document_opened_handler)
 
@@ -260,11 +261,14 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
             if text_filter:
                 update_texts_async(text_filter=text_filter)
 
-
-    ### TODO: Update when user selects "Compute All"
-    #elif args.commandId == 'FusionComputeAllCommand':
-    #    load()
-    #    save()
+def command_starting_handler(args: ac.ApplicationCommandEventArgs) -> None:
+    if args.commandId == 'FusionComputeAllCommand':
+        # The user wants the whole design to be recomputed, so let's update the
+        # sketch texts before that.
+        # FusionComputeAllCommand does not seem to trigger when we call computeAll(),
+        # but better be safe than sorry.
+        if not running_compute_all_:
+            update_texts_async()
 
 # NOTE: This function might be called from inside a command
 def update_texts(text_filter: Iterable[str] | None = None,
@@ -300,7 +304,22 @@ def update_texts(text_filter: Iterable[str] | None = None,
         design.designType == af.DesignTypes.ParametricDesignType and
         globals.settings_[globals.AUTOCOMPUTE_SETTING]):
         try:
-            design.computeAll()
+            global running_compute_all_
+            running_compute_all_ = True
+            try:
+                design.computeAll()
+            except RuntimeError as e:
+                msg = None
+                if len(e.args) > 0:
+                    msg = e.args[0]
+                if (msg == '2 : InternalValidationError : res' and
+                    isinstance(globals.app_.activeProduct, af.FlatPatternProduct)):
+                    # See comment in set_sketch_text(). It triggers when doing compute all
+                    # inside the flat pattern environment as well.
+                    globals.app_.log('Ignore benign InternalValidationError when updating design '
+                                     'text from the flat pattern environment when doing Compute All.')
+            finally:
+                running_compute_all_ = False
         except RuntimeError as e:
             if e.args and 'Compute Failed' in e.args[0]:
                 msg = f'Compute all, triggered by {globals.NAME_VERSION}, failed:<br>\n<br>\n'
