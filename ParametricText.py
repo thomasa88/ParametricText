@@ -29,6 +29,7 @@ from __future__ import annotations
 import enum
 import queue
 import math
+from typing import Iterable
 
 import adsk
 import adsk.core as ac
@@ -290,34 +291,34 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
     # must be delayed or called through update_texts_async().
     # Also, call the async function to only get one Undo item.
 
-    if args.commandId in ['ChangeParameterCommand',
-                          'SketchEditDimensionCmdDef',
-                          'DesignConfigurationActivateRowCmd']:
-        # User (might have) changed a parameter
-        update_texts_async()
-    elif args.commandId == 'FusionPasteNewCommand':
-        # User pasted a component, that will have a new name
-        update_texts_async(text_filter=['_.component'])
-    elif args.commandId == 'FusionPropertiesCommand':  
-        # User changed component properties  
-        update_texts_async(text_filter=['_.component', '_.compdesc', '_.partnum'])
-    elif (args.commandId in ['RenameCommand',
-                             'FusionRenameTimelineEntryCommand']):
-        # User might have changed a component or sketch name
-        text_filter = set()
-        for selection in globals.ui_.activeSelections:
-            # Getting "RuntimeError: 3 : object is invalid" if we try to get the entity
-            # for selection of some features/objects.
-            try:
-                entity = selection.entity
-            except RuntimeError:
-                continue
-            if isinstance(entity, af.Occurrence):
-                text_filter.add('_.component')
-            elif isinstance(entity, af.Sketch):
-                text_filter.add('_.sketch')
-        if text_filter:
-            update_texts_async(text_filter=['_.component', '_.sketch'])
+    match args.commandId:
+        case ('ChangeParameterCommand' |
+              'SketchEditDimensionCmdDef' |
+              'DesignConfigurationActivateRowCmd'):
+            # User (might have) changed a parameter
+            update_texts_async()
+        case 'FusionPasteNewCommand':
+            # User pasted a component, that will have a new name
+            update_texts_async(text_filter=['_.component'])
+        case 'FusionPropertiesCommand':
+            # User changed component properties
+            update_texts_async(text_filter=['_.component', '_.compdesc', '_.partnum'])
+        case 'RenameCommand' | 'FusionRenameTimelineEntryCommand':
+            # User might have changed a component or sketch name
+            text_filter = set()
+            for selection in globals.ui_.activeSelections:
+                # Getting "RuntimeError: 3 : object is invalid" if we try to get the entity
+                # for selection of some features/objects.
+                try:
+                    entity = selection.entity
+                except RuntimeError:
+                    continue
+                if isinstance(entity, af.Occurrence):
+                    text_filter.add('_.component')
+                elif isinstance(entity, af.Sketch):
+                    text_filter.add('_.sketch')
+            if text_filter:
+                update_texts_async(text_filter=text_filter)
 
 
     ### TODO: Update when user selects "Compute All"
@@ -326,7 +327,7 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
     #    save()
 
 # NOTE: This function might be called from inside a command
-def update_texts(text_filter: list[str] | None = None,
+def update_texts(text_filter: Iterable[str] | None = None,
                  next_version: bool | None = False,
                  texts: dict[int, storage.TextInfo] | None = None) -> None:
     if not storage.is_valid():
@@ -344,7 +345,8 @@ def update_texts(text_filter: list[str] | None = None,
     for text_id, text_info in texts.items():
         format_str = text_info.format_str
         assert format_str is not None
-        if not text_filter or [filter_value for filter_value in text_filter if filter_value in format_str]:
+        if not text_filter or [filter_value for filter_value in text_filter
+                               if filter_value in format_str]:
             for sketch_text in text_info.sketch_texts:
                 # Must evaluate for every sketch for every text, in case
                 # the user has used the component name parameter.
@@ -370,7 +372,7 @@ def update_texts(text_filter: list[str] | None = None,
                 raise
 
 async_update_queue_ = queue.Queue()
-def update_texts_async(text_filter: list[str] | None = None, next_version: bool = False) -> None:
+def update_texts_async(text_filter: Iterable[str] | None = None, next_version: bool = False) -> None:
     # Running this as a command to avoid a big list of "Set attribute" in the Undo history.
     # We cannot avoid having at least one item in the Undo list:
     # https://forums.autodesk.com/t5/fusion-360-api-and-scripts/stop-custom-graphics-from-being-added-to-undo/m-p/9438477
