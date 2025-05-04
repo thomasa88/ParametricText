@@ -27,6 +27,7 @@ import adsk.fusion as af
 import adsk.core as ac
 
 from . import globals
+from .thomasa88lib import utils
 
 # The attribute "database" version. Used to check compatibility with
 # parameters stored in the document.
@@ -102,6 +103,7 @@ def save_texts(texts: dict[int, TextInfo], removed_text_ids: list[int]) -> None:
     for text_id, text_info in texts.items():
         remove_attributes(text_id)
 
+        assert text_info.format_str is not None, f'TextInfo for text_id {text_id} has no format string.'
         design.attributes.add(ATTRIBUTE_GROUP, f'textValue_{text_id}',
                               text_info.format_str)
     
@@ -321,6 +323,6 @@ def parent_class_names(parent_or_parents) -> list[str]:
         parent_or_parents = [parent_or_parents]
 
     for parent in parent_or_parents:
-        class_names.append(thomasa88lib.utils.short_class(parent))
+        class_names.append(utils.short_class(parent))
     
     return class_names

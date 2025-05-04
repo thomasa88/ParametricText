@@ -38,8 +38,8 @@ import adsk.fusion as af
 # loaded by other add-ins
 # globals should scream if thomasa88lib cannot be loaded
 from . import globals
-
 from .thomasa88lib import utils
+
 from . import storage
 from . import dialog
 from . import textgenerator
@@ -82,15 +82,15 @@ def run(_context: str) -> None:
 
         # Instance check, in case the user has installed ParametricText both from
         # the app store and from github
-        instance_string = f'{globals.NAME_VERSION} in {thomasa88lib.utils.get_file_dir()}'
+        instance_string = f'{globals.NAME_VERSION} in {utils.get_file_dir()}'
         if hasattr(adsk, 'thomasa88_parametric_text_running'):
             globals.ui_.messageBox(f"Two copies of {globals.ADDIN_NAME} are enabled:\n\n"
-                           f"{adsk.thomasa88_parametric_text_running}\n"
+                           f"{adsk.thomasa88_parametric_text_running}\n" # type: ignore
                            f"{instance_string}\n\n"
                            "Please disable (add-ins dialog) or uninstall one copy.",
                            globals.NAME_VERSION)
             return
-        adsk.thomasa88_parametric_text_running = instance_string
+        adsk.thomasa88_parametric_text_running = instance_string # type: ignore
         global started_
         started_ = True
 
@@ -141,17 +141,19 @@ def stop(_context: str) -> None:
     with globals.error_catcher_:
         globals.events_manager_.clean_up()
 
+        panel = None
         for panel_id in PANEL_IDS:
             panel = globals.ui_.allToolbarPanels.itemById(panel_id)
             control = panel.controls.itemById(DIALOG_CMD_ID)
             if control:
                 control.deleteMe()
         
-        dialog_cmd_def = panel.controls.itemById(DIALOG_CMD_ID)
-        if dialog_cmd_def:
-            dialog_cmd_def.deleteMe()
+        if panel:
+            dialog_cmd_def = panel.controls.itemById(DIALOG_CMD_ID)
+            if dialog_cmd_def:
+                dialog_cmd_def.deleteMe()
 
-        del adsk.thomasa88_parametric_text_running
+        del adsk.thomasa88_parametric_text_running # type: ignore
 
 # Tries to update the given SketchText, if the text value has changed.
 # Returns True if the supplied text value differed from the old value.
@@ -171,6 +173,7 @@ def set_sketch_text(sketch_text: af.SketchText, text: str) -> bool:
         check_text_height_bug(sketch_text)
 
         global text_height_workaround_state_
+        param_exprs = []
         if text_height_workaround_state_ == WorkaroundState.Enabled:
             # Expecting parameter order to be stable inside our function scope
             param_exprs = [p.expression for p in sketch_text.parentSketch.parentComponent.modelParameters]
@@ -410,6 +413,7 @@ def error_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
     globals.events_manager_.add_handler(cmd.execute, callback=error_cmd_execute_handler)
 
 def error_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
+    assert error_notification_msg_ is not None
     args.executeFailed = True
     args.executeFailedMessage = error_notification_msg_
 
