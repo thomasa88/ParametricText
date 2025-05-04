@@ -193,6 +193,15 @@ def set_sketch_text(sketch_text: af.SketchText, text: str) -> bool:
                             'See add-in help document/README for more information.',
                             globals.NAME_VERSION)
             # Unhook the text from the text parameter?
+        elif (msg == '2 : InternalValidationError : res' and
+              isinstance(globals.app_.activeProduct, af.FlatPatternProduct)):
+            # For some reason, updating texts of sketches outside a flat pattern, while
+            # being in the flat pattern environment, causes an InternalValidationError.
+            # However, the sketch texts are updated correctly, so we just ignore this
+            # error.
+            # I have not been able to reproduce this in the Python console..
+            globals.app_.log('Ignore benign InternalValidationError when updating design '
+                             'text from the flat pattern environment.')
         else:
             raise
     return True
