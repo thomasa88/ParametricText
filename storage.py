@@ -137,12 +137,12 @@ def load_next_id() -> int:
             next_id = 100 # Try to skip past used IDs..
         else:
             next_id = int(next_id_attr.value)
-    globals.app_.log(f"{globals.ADDIN_NAME} LOAD NEXT ID {next_id}")
+    globals.log(f"LOAD NEXT ID {next_id}")
     return next_id
 
 def save_next_id(next_id: int) -> bool:
     design = globals.get_design()
-    globals.app_.log(f"{globals.ADDIN_NAME} SAVE NEXT ID {next_id}")
+    globals.log(f"SAVE NEXT ID {next_id}")
     if next_id is None:
         globals.ui_.messageBox(f'Failed to save text ID counter. Save failed.\n\n'
                        'Please inform the developer of the steps you performed to trigger this error.',
@@ -240,19 +240,19 @@ def migrate_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
     from_version = migrate_from_
     to_version = migrate_to_
     design = globals.get_design()
-    globals.app_.log(f'{globals.ADDIN_NAME} Migrating storage: {from_version} -> {to_version}')
+    globals.log(f'{globals.ADDIN_NAME} Migrating storage: {from_version} -> {to_version}')
     dump_storage()
     if from_version == 1 and to_version == 2:
         # Migrate global attributes
         design_attrs = design.attributes.itemsByGroup(ATTRIBUTE_GROUP)
         for attr in design_attrs:
             if attr.name.startswith('customTextType_'):
-                globals.app_.log(f'{globals.ADDIN_NAME} deleting attribute "{attr.name}"')
+                globals.log(f'{globals.ADDIN_NAME} deleting attribute "{attr.name}"')
                 attr.deleteMe()
             elif attr.name.startswith('customTextValue_'):
                 text_id = globals.extract_text_id(attr.name)
                 new_attr_name = f'textValue_{text_id}'
-                globals.app_.log(f'{globals.ADDIN_NAME} migrating "{attr.name}" -> "{new_attr_name}"')
+                globals.log(f'{globals.ADDIN_NAME} migrating "{attr.name}" -> "{new_attr_name}"')
                 design.attributes.add(ATTRIBUTE_GROUP, new_attr_name, attr.value)
                 attr.deleteMe()
 
@@ -260,7 +260,7 @@ def migrate_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
         # native Sketch Texts.
         migrate_proxy_to_native_sketch('hasParametricText_', 'hasText_')
 
-        globals.app_.log(f'{globals.ADDIN_NAME} writing version {to_version}')
+        globals.log(f'{globals.ADDIN_NAME} writing version {to_version}')
         save_storage_version()
     else:
         globals.ui_.messageBox('Cannot migrate from storage version {from_version} to {to_version}!',
@@ -269,17 +269,17 @@ def migrate_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
         return
 
     dump_storage()
-    globals.app_.log(f'{globals.ADDIN_NAME} Migration done.')
+    globals.log(f'{globals.ADDIN_NAME} Migration done.')
     update_texts()
     globals.ui_.messageBox('Migration complete!')
 
 def migrate_proxy_to_native_sketch(old_attr_prefix: str, new_attr_prefix: str) -> None:
     design = globals.get_design()
-    globals.app_.log(f'Migrating {old_attr_prefix} to {new_attr_prefix}')
+    globals.log(f'Migrating {old_attr_prefix} to {new_attr_prefix}')
     attrs = design.findAttributes(ATTRIBUTE_GROUP, r're:' + old_attr_prefix + r'\d+')
     for attr in attrs:
         if attr.value is None:
-            globals.app_.log(f'Attribute {attr.name} has no value. Skipping...')
+            globals.log(f'Attribute {attr.name} has no value. Skipping...')
         text_id = globals.extract_text_id(attr.name)
         text = attr.value
         native_sketch_texts = []
@@ -303,16 +303,16 @@ def dump_storage() -> None:
 
     def print_attrs(attrs):
         for attr in attrs:
-            globals.app_.log(f'"{attr.name}", "{attr.value}", '
+            globals.log(f'"{attr.name}", "{attr.value}", '
                   f'"{parent_class_names(attr.parent)[0]}", ' +
                   '"' + '", "'.join(parent_class_names(attr.otherParents)) + '"')
 
-    globals.app_.log('-' * 50)
-    globals.app_.log('Design attributes')
+    globals.log('-' * 50)
+    globals.log('Design attributes')
     print_attrs(design.attributes.itemsByGroup(ATTRIBUTE_GROUP))
-    globals.app_.log('Entity attributes')
+    globals.log('Entity attributes')
     print_attrs(find_attributes_in_all_products(''))
-    globals.app_.log('-' * 50)
+    globals.log('-' * 50)
 
 def parent_class_names(parent_or_parents) -> list[str]:
     if parent_or_parents is None:

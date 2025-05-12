@@ -200,6 +200,8 @@ def dialog_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
     cmd.commandInputs.addBoolValueInput('autocompute', 'Run Compute All automatically', True,
                                                             './resources/auto_compute_all',
                                                             globals.settings_[globals.AUTOCOMPUTE_SETTING])
+    cmd.commandInputs.addBoolValueInput('troubleshoot', 'Troubleshooting mode', True, '',
+                                        globals.settings_[globals.TROUBLESHOOT_SETTING])
 
     dialog_state_.selection_map.clear()
     texts = storage.load_texts()
@@ -296,11 +298,11 @@ def dialog_cmd_pre_select_handler(args: ac.SelectionEventArgs) -> None:
     args.additionalEntities = additional
 
 def dialog_cmd_select_handler(args: ac.SelectionEventArgs) -> None:
-    #globals.app_.log("SELECT {args.selection.entity} {args.selection.entity.parentSketch.name}")
+    #globals.log("SELECT {args.selection.entity} {args.selection.entity.parentSketch.name}")
     dialog_state_.pending_unselects.clear()
 
 def dialog_cmd_unselect_handler(args: ac.SelectionEventArgs) -> None:
-    #globals.app_.log("UNSELECT {args.selection.entity} {args.selection.entity.parentSketch.name}")
+    #globals.log("UNSELECT {args.selection.entity} {args.selection.entity.parentSketch.name}")
     # args.additionalEntities does not seem to work for unselect and activeInput seems
     # to not be set. Just store what happened and sort it out in the input_changed
     # handler.
@@ -327,7 +329,7 @@ def handle_select_input_change(table_input: ac.TableCommandInput) -> None:
         native_sketch_text = get_native_sketch_text(sketch_text_proxy)
         if not native_sketch_text:
             # This should not happen, but handle it gracefully
-            globals.app_.log(f"{globals.ADDIN_NAME} could not get native skech text for {get_sketch_sym_name(sketch_text_proxy)}")
+            globals.log(f"could not get native sketch text for {get_sketch_sym_name(sketch_text_proxy)}")
             continue
         if (native_sketch_text not in sketch_texts and
             native_sketch_text not in pending_unselect_sketch_texts):
@@ -489,6 +491,7 @@ def dialog_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
     storage.save_texts(texts, dialog_state_.removed_texts)
 
     globals.settings_[globals.AUTOCOMPUTE_SETTING] = cmd.commandInputs.itemById('autocompute').value
+    globals.settings_[globals.TROUBLESHOOT_SETTING] = cmd.commandInputs.itemById('troubleshoot').value
     update_texts_(texts=texts)
 
     del dialog_state_

@@ -125,7 +125,7 @@ def run(_context: str) -> None:
         delayed_event = globals.events_manager_.register_event(EXT_UPDATE_EVENT_ID)
         globals.events_manager_.add_handler(delayed_event, callback=ext_call_update_handler)
 
-        if globals.app_.isStartupComplete and is_design_workspace():
+        if globals.app_.isStartupComplete and is_usable_workspace():
             # Add-in was (re)loaded while Fusion 360 was running
             storage.check_storage_version()
 
@@ -201,27 +201,33 @@ def set_sketch_text(sketch_text: af.SketchText, text: str) -> bool:
             # However, the sketch texts are updated correctly, so we just ignore this
             # error.
             # I have not been able to reproduce this in the Python console..
-            globals.app_.log('Ignore benign InternalValidationError when updating design '
+            globals.log('Ignore benign InternalValidationError when updating design '
                              'text from the flat pattern environment.')
         else:
             raise
     return True
 
 def document_opened_handler(args: ac.DocumentEventArgs) -> None:
-    if is_design_workspace():
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"Document opened. Workspace: {globals.ui_.activeWorkspace.id}")
+    if is_usable_workspace():
         storage.check_storage_version()
 
-def is_design_workspace() -> bool:
+def is_usable_workspace() -> bool:
+    '''Workspaces where ParametricText can be used/run.'''
     return globals.ui_.activeWorkspace.id == 'FusionSolidEnvironment'
 
 def document_saving_handler(args: ac.DocumentEventArgs) -> None:
-    if globals.ui_.activeWorkspace.id == 'FusionSolidEnvironment':
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"Document saving. Workspace: {globals.ui_.activeWorkspace.id}")
+    if is_usable_workspace():
         # This cannot run async or delayed, as we must update the parameters before Fusion
         # saves the document.
         update_texts(text_filter=['_.version', '_.date'], next_version=True)
 
 def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
-    #globals.app_.log(f"{globals.ADDIN_NAME} terminate: {args.commandId}, reason: {args.terminationReason}")
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"Command terminated: {args.commandId}, reason: {args.terminationReason}")
     if args.terminationReason != ac.CommandTerminationReason.CompletedTerminationReason:
         if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason and args.commandId == 'DesignConfigurationUpdateNestedRowNameCmd':
             # User renamed a configuration
@@ -262,6 +268,8 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
                 update_texts_async(text_filter=text_filter)
 
 def command_starting_handler(args: ac.ApplicationCommandEventArgs) -> None:
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"Command starting: {args.commandId}")
     if args.commandId == 'FusionComputeAllCommand':
         # The user wants the whole design to be recomputed, so let's update the
         # sketch texts before that.
@@ -316,7 +324,7 @@ def update_texts(text_filter: Iterable[str] | None = None,
                     isinstance(globals.app_.activeProduct, af.FlatPatternProduct)):
                     # See comment in set_sketch_text(). It triggers when doing compute all
                     # inside the flat pattern environment as well.
-                    globals.app_.log('Ignore benign InternalValidationError when updating design '
+                    globals.log('Ignore benign InternalValidationError when updating design '
                                      'text from the flat pattern environment when doing Compute All.')
             finally:
                 running_compute_all_ = False
@@ -379,4 +387,6 @@ def error_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
     args.executeFailedMessage = error_notification_msg_
 
 def ext_call_update_handler(args: ac.CustomEventArgs) -> None:
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"External update event")
     update_texts()

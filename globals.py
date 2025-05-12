@@ -23,6 +23,7 @@
 
 import importlib
 from typing import cast
+from datetime import datetime
 
 import adsk.core as ac
 import adsk.fusion as af
@@ -57,13 +58,15 @@ manifest_ = manifest.read()
 
 NAME_VERSION = f'{ADDIN_NAME} v {manifest_["version"]}'
 AUTOCOMPUTE_SETTING = 'autocompute'
+TROUBLESHOOT_SETTING = 'troubleshoot'
 
 
 error_catcher_ = error.ErrorCatcher(msgbox_in_debug=False,
                                                  msg_prefix=NAME_VERSION)
 events_manager_ = events.EventsManager(error_catcher_)
 settings_ = settings.SettingsManager({
-    AUTOCOMPUTE_SETTING: True
+    AUTOCOMPUTE_SETTING: True,
+    TROUBLESHOOT_SETTING: False,
 })
 
 app_: ac.Application
@@ -78,3 +81,6 @@ def extract_text_id(input_or_str: ac.CommandInput | str) -> int:
 def get_design() -> af.Design:
     design = af.FusionDocument.cast(app_.activeDocument).design
     return design
+
+def log(message: str, **kwargs):
+    app_.log(f'{datetime.now()} {ADDIN_NAME}: {message}', **kwargs)
