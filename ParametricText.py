@@ -409,7 +409,13 @@ def dump_sketches() -> None:
         for sketch in comp.sketches:
             globals.log(f"  S: {sketch.name}")
             for sketch_text in sketch.sketchTexts:
+                attr_text = ""
+                attrs = sketch_text.attributes.itemsByGroup(storage.ATTRIBUTE_GROUP)
+                has_attrs = [attr for attr in attrs if attr.name.startswith('hasText_')]
+                if has_attrs:
+                    attr = has_attrs[0]
+                    attr_text = f" [{globals.extract_text_id(attr.name)}]"
                 try:
-                    globals.log(f'   "{sketch_text.text}"')
+                    globals.log(f'   "{sketch_text.text}"{attr_text}')
                 except Exception as e:
                     globals.log(str(e))
