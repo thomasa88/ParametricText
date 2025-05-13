@@ -128,6 +128,9 @@ def run(_context: str) -> None:
         if globals.app_.isStartupComplete and is_usable_workspace():
             # Add-in was (re)loaded while Fusion 360 was running
             storage.check_storage_version()
+        
+        if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+            dump_sketches()
 
 def stop(_context: str) -> None:
     if not started_:
@@ -212,6 +215,9 @@ def document_opened_handler(args: ac.DocumentEventArgs) -> None:
         globals.log(f"Document opened. Workspace: {globals.ui_.activeWorkspace.id}")
     if is_usable_workspace():
         storage.check_storage_version()
+
+        if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+            dump_sketches()
 
 def is_usable_workspace() -> bool:
     '''Workspaces where ParametricText can be used/run.'''
@@ -337,6 +343,10 @@ def update_texts(text_filter: Iterable[str] | None = None,
                 globals.events_manager_.delay(lambda: show_error_notification(msg))
             else:
                 raise
+    
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"Updated {update_count} sketch texts.")
+        dump_sketches()
 
 async_update_queue_ = queue.Queue()
 def update_texts_async(text_filter: Iterable[str] | None = None, next_version: bool = False) -> None:
@@ -390,3 +400,16 @@ def ext_call_update_handler(args: ac.CustomEventArgs) -> None:
     if globals.settings_[globals.TROUBLESHOOT_SETTING]:
         globals.log(f"External update event")
     update_texts()
+
+def dump_sketches() -> None:
+    globals.log(f"Sketch dump:")
+    design = globals.get_design()
+    for comp in design.allComponents:
+        globals.log(f" C: {comp.name}")
+        for sketch in comp.sketches:
+            globals.log(f"  S: {sketch.name}")
+            for sketch_text in sketch.sketchTexts:
+                try:
+                    globals.log(f'   "{sketch_text.text}"')
+                except Exception as e:
+                    globals.log(str(e))

@@ -82,6 +82,10 @@ def load_texts() -> dict[int, TextInfo]:
                 for other_parent in has_attr.otherParents:
                     sketch_texts.append(af.SketchText.cast(other_parent))
     
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"Loaded {len(texts)} texts:")
+        dump_texts(texts)
+
     return texts
 
 def find_attributes_in_all_products(attr_name: str) -> list[ac.Attribute]:
@@ -97,6 +101,10 @@ def find_attributes_in_all_products(attr_name: str) -> list[ac.Attribute]:
 
 def save_texts(texts: dict[int, TextInfo], removed_text_ids: list[int]) -> None:
     design = globals.get_design()
+
+    if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+        globals.log(f"Saving {len(texts)} texts:")
+        dump_texts(texts)
 
     save_storage_version()
     
@@ -326,3 +334,10 @@ def parent_class_names(parent_or_parents) -> list[str]:
         class_names.append(utils.short_class(parent))
     
     return class_names
+
+def dump_texts(texts: dict[int, TextInfo]) -> None:
+    for text_id, text_info in texts.items():
+        sketch_names = [st.parentSketch.name for st in text_info.sketch_texts]
+        if not sketch_names:
+            sketch_names = ["<Not assigned>"]
+        globals.log(f' {text_id}: {','.join(sketch_names)}: "{text_info.format_str}"')
