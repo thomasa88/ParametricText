@@ -128,9 +128,8 @@ def run(_context: str) -> None:
         if globals.app_.isStartupComplete and is_usable_workspace():
             # Add-in was (re)loaded while Fusion 360 was running
             storage.check_storage_version()
-        
-        if globals.settings_[globals.TROUBLESHOOT_SETTING]:
-            dump_sketches()
+            if globals.settings_[globals.TROUBLESHOOT_SETTING]:
+                dump_sketches()
 
 def stop(_context: str) -> None:
     if not started_:
