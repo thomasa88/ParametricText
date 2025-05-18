@@ -491,7 +491,17 @@ def dialog_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
     storage.save_texts(texts, dialog_state_.removed_texts)
 
     globals.settings_[globals.AUTOCOMPUTE_SETTING] = cmd.commandInputs.itemById('autocompute').value
-    globals.settings_[globals.TROUBLESHOOT_SETTING] = cmd.commandInputs.itemById('troubleshoot').value
+    troubleshoot = cmd.commandInputs.itemById('troubleshoot').value
+    globals.settings_[globals.TROUBLESHOOT_SETTING] = troubleshoot
+
+
     update_texts_(texts=texts)
+
+    # Print this after update_texts() spam the log to make it visible to the user
+    if troubleshoot:
+        text_palette = globals.ui_.palettes.itemById('TextCommands')
+        if text_palette:
+            text_palette.isVisible = True
+            globals.log(f"\n----------\n{globals.ADDIN_NAME} troubleshooting mode enabled. Press Ctrl+Alt+C to show and hide this console. Or go to File -> View -> Show/Hide Text Commands.\n----------\n")
 
     del dialog_state_
