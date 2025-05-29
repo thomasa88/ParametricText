@@ -1,9 +1,14 @@
 What's New
 ----------
 
-- v NEXT (TBA)
+- v 2.5.0-beta.1 (TBA)
 
+   - Minor performance improvement when looking up sketch text objects. (#84)
    - Partial support for text parameters in sheet metal flat pattern sketches. (#86)
+   - Only trigger text updates for renames of objects that are tracked.
+   - Remove remaining code for old text height workaround. (#29)
+   - Update sketches when user runs compute all. (#70)
+   - Troubleshooting mode, which logs add-in status.
 
 -  v 2.4.1 (April 2024)
 
