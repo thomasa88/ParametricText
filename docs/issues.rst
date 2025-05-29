@@ -25,3 +25,5 @@ Please use the `Issues <https://github.com/thomasa88/ParametricText/issues>`__ p
 
 For better support when reporting an issue, please include the steps you performed and the
 result. Also include copies of any error messages.
+
+Enabling :ref:`troubleshooting mode<settings>` and copying the output from the text commands terminal is also recommended.

@@ -72,11 +72,16 @@ currently selected text box.
 
 The various buttons with braces (:guilabel:`{...}`) allows for quickly inserting parameters.
 
+.. _settings:
+
 Settings
 --------
 
 *Run Compute All automatically*
   Make ParametricText run *Compute All* every time text parameters are updated. This can be needed for geometry depending on the texts to be redrawn. Text updates will be slower.
+
+*Troubleshooting mode*
+  Used for troubleshooting bugs. Make ParametricText log its actions and the current sketch states in the Fusion text commands terminal. When enabled, the terminal will open. Press :kbd:`Ctrl+Alt+C` to open and close the terminal. Troubleshooting mode can make Fusion run slower.
 
 Disabling ParametricText
 ------------------------
