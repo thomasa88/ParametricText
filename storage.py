@@ -340,4 +340,4 @@ def dump_texts(texts: dict[int, TextInfo]) -> None:
         sketch_names = [st.parentSketch.name for st in text_info.sketch_texts]
         if not sketch_names:
             sketch_names = ["<Not assigned>"]
-        globals.log(f' [{text_id}]: {','.join(sketch_names)}: "{text_info.format_str}"')
+        globals.log(f' {','.join(sketch_names)}: "{text_info.format_str}" [id={text_id}]')
