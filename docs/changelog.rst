@@ -9,6 +9,7 @@ What's New
    - Remove remaining code for old text height workaround. (#29)
    - Update sketches when user runs compute all. (#70)
    - Troubleshooting mode, which logs add-in status.
+   - Remove sketch text from previous text parameter row if it is included in a row.
 
 -  v 2.4.1 (April 2024)
 

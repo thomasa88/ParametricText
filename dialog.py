@@ -344,6 +344,18 @@ def handle_select_input_change(table_input: ac.TableCommandInput) -> None:
         # so we rebuild the selection list instead.
         update_select_input(table_input, force=True)
 
+    # Make sure a sketch text is not selected by another row as well.
+    # Remove it from the other row in that case.
+    for sel_text_id, sel_sketch_texts in dialog_state_.selection_map.items():
+        if sel_text_id != text_id:
+            colliding_selections = [s for s in sel_sketch_texts if s in sketch_texts]
+            if colliding_selections:
+                for coll_sel in colliding_selections:
+                    globals.log(f"Clearing colliding selection from text {sel_text_id}: {get_sketch_sym_name(coll_sel)}")
+                    sel_sketch_texts.remove(coll_sel)
+                sel_texts_input = ac.StringValueCommandInput.cast(table_input.commandInputs.itemById(f'sketchtexts_{sel_text_id}'))
+                set_row_sketch_texts_text(sel_texts_input, sel_sketch_texts)
+
 def update_select_input(table_input: ac.TableCommandInput, force: bool = False) -> None:
     if not table_input.isValid:
         # Dialog is likely closed. This is an effect of the delay() call.
