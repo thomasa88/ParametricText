@@ -8,7 +8,10 @@ for a quick overview of ParametricText.
 Before you open the parameter dialog, you want to prepare a sketch with a text to assign a parameter to.
 
 ParametricText is accessed through :guilabel:`MODIFY` -> :guilabel:`Change Text
-Parameters`.
+Parameters` in the Design workspace and :guilabel:`MANAGE` -> :guilabel:`Change Text
+Parameters` in the Manufacture workspace.
+
+Due to Fusion API limitations, ParametricText is not added to a menu in the Flat pattern environment. As a workaround, you can assign a keyboard shortcut to "Change Text Parameters".
 
 |img_menu|
 
