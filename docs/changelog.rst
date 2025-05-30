@@ -10,6 +10,7 @@ What's New
    - Update sketches when user runs compute all. (#70)
    - Troubleshooting mode, which logs add-in status.
    - Remove sketch text from previous text parameter row if it is included in a row.
+   - Add "change text parameters" to Manufacture->Manage menu. (#33)
 
 -  v 2.4.1 (April 2024)
 

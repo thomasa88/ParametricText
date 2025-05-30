@@ -60,6 +60,7 @@ PANEL_IDS = [
             'AssembleUtilityPanel',
             'SurfaceModifyPanel',
             'SnapshotSolidModifyPanel',
+            'CAMManagePanel',
             # TODO: Add Modify panel Flat Panel Solid and Flat Panel Surface,
             # if that is possible. https://forums.autodesk.com/t5/fusion-api-and-scripts-forum/add-in-not-shown-in-quot-flat-pattern-quot/m-p/7540174
         ]
