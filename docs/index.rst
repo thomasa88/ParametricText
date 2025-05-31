@@ -15,6 +15,7 @@ ParametricText
    installation
    usage
    parameters
+   export
    issues
    about
    addins

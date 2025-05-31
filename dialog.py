@@ -31,6 +31,7 @@ import adsk.fusion as af
 from . import globals
 from . import storage
 from . import textgenerator
+from . import export
 
 QUICK_REF = '''<b>Quick Reference</b><br>
 {_.component}, {_.sketch}, {_.date}, {_.file}, {_.version}, {_.compdesc}<br>
@@ -196,7 +197,15 @@ def dialog_cmd_created_handler(args: ac.CommandCreatedEventArgs) -> None:
     quick_ref = table_input.commandInputs.addTextBoxCommandInput('quick_ref', '', QUICK_REF, QUICK_REF_LINES, True)
     quick_ref.isFullWidth = True
 
-    quick_ref = table_input.commandInputs.addTextBoxCommandInput('settings_head', '', '<b>Settings</b>', 1, True)
+    table_input.commandInputs.addTextBoxCommandInput('export_head', '', '<b>Import/Export</b>', 1, True)
+    btns_input = table_input.commandInputs.addButtonRowCommandInput(f'export_btns', '', True)
+    btns_input.listItems.add('Export parameters only', False, './resources/logo')
+    btns_input.listItems.add('Export with sketch assignments', False, './resources/logo')
+    btns_input.listItems.add('Import parameters only', False, './resources/logo')
+    btns_input.listItems.add('Import with sketch assignments', False, './resources/logo')
+    btns_input.isFullWidth = True
+
+    table_input.commandInputs.addTextBoxCommandInput('settings_head', '', '<b>Settings</b>', 1, True)
     cmd.commandInputs.addBoolValueInput('autocompute', 'Run Compute All automatically', True,
                                                             './resources/auto_compute_all',
                                                             globals.settings_[globals.AUTOCOMPUTE_SETTING])
@@ -241,7 +250,7 @@ def add_insert_button(table_input: ac.TableCommandInput,
 ### preview: executePreview show text from param.
 
 def dialog_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
-    table_input: ac.TableCommandInput = args.inputs.itemById('table')
+    table_input = ac.TableCommandInput.cast(args.inputs.itemById('table'))
     need_update_select_input = False
     update_select_force = False
     if args.input.id == 'add_row_btn':
@@ -256,7 +265,7 @@ def dialog_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
             insert_id = int(args.input.id.split('_')[-1])
             insert_value = dialog_state_.insert_button_values[insert_id]
             text_id = globals.extract_text_id(table_input.getInputAtPosition(row, 0))
-            value_input = table_input.commandInputs.itemById(f'value_{text_id}')
+            value_input = ac.StringValueCommandInput.cast(table_input.commandInputs.itemById(f'value_{text_id}'))
             if insert_value.prepend:
                 value_input.value = insert_value.value + value_input.value
             else:
@@ -276,10 +285,84 @@ def dialog_cmd_input_changed_handler(args: ac.InputChangedEventArgs) -> None:
         update_select_force = True
     elif args.input.id == 'select':
         handle_select_input_change(table_input)
+    elif args.input.id == 'export_btns':
+        export_btns = ac.ButtonRowCommandInput.cast(args.input)
+        for btn in export_btns.listItems:
+            if btn.isSelected:
+                btn.isSelected = False
+                match btn.name:
+                    case 'Export parameters only':
+                        format_strs = [([], info.format_str) for info in create_texts_dict(table_input).values()]
+                        doc_name = globals.app_.activeDocument.name
+                        export.export_csv(f'{doc_name} text parameters', format_strs)
+                    case 'Export with sketch assignments':
+                        formats_with_sketch_names = []
+                        texts = create_texts_dict(table_input)
+                        for text_id, text_info in texts.items():
+                            sketch_texts = text_info.sketch_texts
+                            # Sketches with the same name will be collapsed. The user will have to give them unique names
+                            # to separate them.
+                            sketch_names = set()
+                            for sketch_text in sketch_texts:
+                                sketch_names.add(sketch_text.parentSketch.name)
+                            formats_with_sketch_names.append((sketch_names, text_info.format_str))
+                        doc_name = globals.app_.activeDocument.name
+                        export.export_csv(f'{doc_name} text parameters', formats_with_sketch_names)
+                    case 'Import parameters only':
+                        with_sketches = False
+                        if import_parameters(table_input, with_sketches):
+                            need_update_select_input = True
+                    case 'Import with sketch assignments':
+                        with_sketches = True
+                        if import_parameters(table_input, with_sketches):
+                            need_update_select_input = True
+                break
 
     if need_update_select_input:
         # Wait for the table row selection to update before updating select input
         globals.events_manager_.delay(lambda: update_select_input(table_input, update_select_force))
+
+def import_parameters(table_input, with_sketches) -> bool:
+    '''Returns True if there were any modifications.'''
+    table_modified = False
+    texts = export.import_csv()
+    if texts:
+        table_modified = False
+        for sketch_names, format_str in texts:
+            imported_sketch_texts = []
+            if with_sketches:
+                # Look up matching sketches
+                design = globals.get_design()
+                for c in design.allComponents:
+                    for sketch in c.sketches:
+                        if sketch.sketchTexts.count > 0 and sketch.name in sketch_names:
+                            # Just taking the first sketch text in each sketch as the heuristic
+                            imported_sketch_texts.append(sketch.sketchTexts[0])
+            # TODO: Check if a sketch is assigned to multiple text parameters.
+            # Check if a row already has this format string
+            for row_index in range(table_input.rowCount):
+                existing_format_str = ac.StringValueCommandInput.cast(
+                                        table_input.getInputAtPosition(row_index, 2)).value
+                if existing_format_str == format_str:
+                    if with_sketches:
+                        # Merge sketch lists (is this reasonable?)
+                        text_id = globals.extract_text_id(table_input.getInputAtPosition(row_index, 0))
+                        sketch_texts = dialog_state_.selection_map[text_id]
+                        for imported_sketch_text in imported_sketch_texts:
+                            if imported_sketch_text not in sketch_texts:
+                                sketch_texts.append(imported_sketch_text)
+                    break
+            else:
+                text_id = create_id()
+                add_row(table_input, text_id, new_row=True, format_str=format_str)
+                table_modified = True
+                if with_sketches:
+                    dialog_state_.selection_map[text_id] = imported_sketch_texts
+        if not table_modified:
+            globals.ui_.messageBox("No new text parameters were added, as all the imported text parameters already exist.",
+                                                       globals.NAME_VERSION)
+                                   
+    return table_modified
 
 def dialog_cmd_pre_select_handler(args: ac.SelectionEventArgs) -> None:
     # Select all proxies pointing to the same SketchText
@@ -490,15 +573,7 @@ def dialog_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
         return
 
     table_input = ac.TableCommandInput.cast(cmd.commandInputs.itemById('table'))
-    texts = defaultdict(storage.TextInfo)
-    for row_index in range(table_input.rowCount):
-        text_id = globals.extract_text_id(table_input.getInputAtPosition(row_index, 0))
-        sketch_texts = dialog_state_.selection_map[text_id]
-        format_str = table_input.commandInputs.itemById(f'value_{text_id}').value
-
-        text_info = texts[text_id]
-        text_info.format_str = format_str
-        text_info.sketch_texts = sketch_texts
+    texts = create_texts_dict(table_input)
 
     storage.save_texts(texts, dialog_state_.removed_texts)
 
@@ -517,3 +592,15 @@ def dialog_cmd_execute_handler(args: ac.CommandEventArgs) -> None:
             globals.log(f"\n----------\n{globals.ADDIN_NAME} troubleshooting mode enabled. Press Ctrl+Alt+C to show and hide this console. Or go to File -> View -> Show/Hide Text Commands.\n----------\n")
 
     del dialog_state_
+
+def create_texts_dict(table_input: ac.TableCommandInput) -> defaultdict[int, storage.TextInfo]:
+    texts = defaultdict(storage.TextInfo)
+    for row_index in range(table_input.rowCount):
+        text_id = globals.extract_text_id(table_input.getInputAtPosition(row_index, 0))
+        sketch_texts = dialog_state_.selection_map[text_id]
+        format_str = ac.StringValueCommandInput.cast(table_input.getInputAtPosition(row_index, 2)).value
+
+        text_info = texts[text_id]
+        text_info.format_str = format_str
+        text_info.sketch_texts = sketch_texts
+    return texts

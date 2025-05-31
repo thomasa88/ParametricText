@@ -77,6 +77,11 @@ The various buttons with braces (:guilabel:`{...}`) allows for quickly inserting
 
 .. _settings:
 
+Import and Export
+-----------------
+
+See :ref:`import-export`.
+
 Settings
 --------
 
