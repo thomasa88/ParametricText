@@ -11,6 +11,7 @@ What's New
    - Troubleshooting mode, which logs add-in status.
    - Remove sketch text from previous text parameter row if it is included in a row.
    - Add "change text parameters" to Manufacture->Manage menu. (#33)
+   - Export and import text parameters to/from CSV files.
 
 -  v 2.4.1 (April 2024)
 

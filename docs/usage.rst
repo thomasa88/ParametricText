@@ -1,3 +1,5 @@
+.. _usage:
+
 User Interface
 ==============
 
@@ -18,6 +20,9 @@ Due to Fusion API limitations, ParametricText is not added to a menu in the Flat
 .. |img_menu| image:: images/modify_menu.png
 
 .. |img_dialog| image:: images/compressed_dialog.png
+
+
+.. _parameter-dialog:
 
 Parameter Dialog
 ----------------
