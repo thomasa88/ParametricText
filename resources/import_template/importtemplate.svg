@@ -8,7 +8,7 @@
    version="1.1"
    id="svg8"
    inkscape:version="1.4.2 (1:1.4.2+202505120737+ebf0e940d0)"
-   sodipodi:docname="import_template.svg"
+   sodipodi:docname="importtemplate.svg"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -26,18 +26,18 @@
      borderopacity="1.0"
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
-     inkscape:zoom="32.000001"
-     inkscape:cx="2.4062499"
-     inkscape:cy="11.78125"
+     inkscape:zoom="16.000001"
+     inkscape:cx="-6.9374998"
+     inkscape:cy="3.6874999"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="true"
      units="px"
-     inkscape:window-width="1247"
+     inkscape:window-width="2494"
      inkscape:window-height="1371"
-     inkscape:window-x="20"
-     inkscape:window-y="20"
-     inkscape:window-maximized="0"
+     inkscape:window-x="0"
+     inkscape:window-y="0"
+     inkscape:window-maximized="1"
      inkscape:snap-global="true"
      inkscape:snap-grids="true"
      inkscape:showpageshadow="2"
@@ -94,7 +94,7 @@
        y="297.45474" />
     <g
        id="g2"
-       transform="matrix(1.098378,0,0,1.098378,-2.8868734,-28.231769)">
+       transform="matrix(1.098378,0,0,1.098378,-2.7716879,-34.052602)">
       <path
          style="fill:none;stroke:#666666;stroke-width:0.265182;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
          d="M 2.6428426,293.69299 H 3.9687503"
@@ -112,17 +112,28 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.88456px;line-height:1.25;font-family:sans-serif;font-variant-ligatures:normal;font-variant-position:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-alternates:normal;font-feature-settings:normal;text-indent:0;text-align:start;text-decoration:none;text-decoration-line:none;text-decoration-style:solid;text-decoration-color:#000000;letter-spacing:0px;word-spacing:0px;text-transform:none;writing-mode:lr-tb;direction:ltr;text-orientation:mixed;dominant-baseline:auto;baseline-shift:baseline;text-anchor:start;white-space:normal;shape-padding:0;vector-effect:none;fill:#666666;fill-opacity:1;stroke:none;stroke-width:0.264583;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
-       x="1.667979"
-       y="295.75342"
+       x="1.7831645"
+       y="289.93259"
        id="text819"><tspan
          sodipodi:role="line"
          id="tspan817"
-         x="1.667979"
-         y="295.75342"
+         x="1.7831645"
+         y="289.93259"
          style="font-style:italic;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:4.04364px;font-family:'Century modern TT';-inkscape-font-specification:'Century modern TT Italic';letter-spacing:-0.487994px;baseline-shift:baseline;fill:#666666;fill-opacity:1;stroke-width:0.264583">T</tspan></text>
     <path
        style="fill:#0000ff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:0.196202;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
-       d="M 3.0427085,296.99998 H 1.1906251 l 0.9260417,-0.79375 z"
+       d="M 3.157894,291.17915 H 1.3058106 l 0.9260417,-0.79375 z"
        id="path7" />
+    <text
+       xml:space="preserve"
+       style="font-size:6.33146px;line-height:1;font-family:'Liberation Sans';-inkscape-font-specification:'Liberation Sans';text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#6565ff;fill-rule:evenodd;stroke-width:0.0437632;fill-opacity:1"
+       x="0.26638657"
+       y="296.97937"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="font-weight:bold;stroke-width:0.043763;fill:#6565ff;fill-opacity:1"
+         x="0.26638657"
+         y="296.97937">+</tspan></text>
   </g>
 </svg>
