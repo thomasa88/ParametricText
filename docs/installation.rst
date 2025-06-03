@@ -38,7 +38,7 @@ From Github |github_version|
 Changing between App Store and Github variants
 ----------------------------------------------
 
-The App Store installer and the Github files are installed in different places. Therefore, make sure to uninstall/remove the variant you are switching from, when changing installation method.
+The App Store installer and the Github files are installed in different places. Therefore, make sure to stop and disable or uninstall/remove the variant you are switching from, when changing installation method.
 
 Migrating from v 1.x to v 2.x
 -----------------------------
