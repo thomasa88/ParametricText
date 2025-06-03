@@ -34,7 +34,8 @@ release = ''
 # ones.
 extensions = [
     'sphinx_rtd_theme',
-    'sphinx.ext.autosectionlabel'
+    'sphinx.ext.autosectionlabel',
+    'sphinx.ext.extlinks',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -48,6 +49,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', 'venv']
 # Do not generate warnings for duplicate labels created by autosectionlabel
 suppress_warnings = ['autosectionlabel.*']
 
+extlinks = { 'issue': ('https://github.com/thomasa88/ParametricText/issues/%s', 'Issue #') }
 
 # -- Options for HTML output -------------------------------------------------
 
