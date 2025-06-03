@@ -1,7 +1,7 @@
 What's New
 ----------
 
-- v 2.5.0-beta.1 (TBA)
+- v 2.5.0 (June 2025)
 
    - Minor performance improvement when looking up sketch text objects. (#84)
    - Partial support for text parameters in sheet metal flat pattern sketches. (#86)
