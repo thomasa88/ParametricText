@@ -24,15 +24,14 @@ Note: There have been some reports of the Mac installer not installing the add-i
 From Github |github_version|
 ----------------------------
 
-Download the add-in from the
-`Releases <https://github.com/thomasa88/ParametricText/releases>`__
-page. Find the version you want and download the ``ParametricText-vx.x.x.zip`` from under *Assets*.
+#. Download the add-in from the `Releases <https://github.com/thomasa88/ParametricText/releases>`__ page.
+   Find the version you want and download the ``ParametricText-vx.x.x.zip`` from under *Assets*.
 
-Unpack the add-in into ``API\AddIns`` (see `How to install an add-in or script
-in Fusion
-360 <https://knowledge.autodesk.com/support/fusion-360/troubleshooting/caas/sfdcarticles/sfdcarticles/How-to-install-an-ADD-IN-and-Script-in-Fusion-360.html>`__).
+#. Unpack the zip file where you want to store ParametricText.
 
-Make sure the directory is named ``ParametricText``, with no suffix.
+#. Open the Add-ins dialog in Fusion using :kbd:`Shift+S` or  :guilabel:`UTILITIES` -> :guilabel:`Add-ins` -> :guilabel:`Scripts and add-ins`.
+
+#. Click :guilabel:`+` to add the add-in.
 
 .. |github_version| image:: https://badgen.net/github/release/thomasa88/ParametricText/stable
 
