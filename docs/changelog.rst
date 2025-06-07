@@ -1,6 +1,10 @@
 What's New
 ----------
 
+- v 2.5.1 (TBA)
+
+   - Add "Change Text Parameters" to the "Modify" menu in the flat pattern environment. (#86)
+
 - v 2.5.0 (June 2025)
 
    - Minor performance improvement when looking up sketch text objects. (#84)

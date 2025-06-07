@@ -13,8 +13,6 @@ ParametricText is accessed through :guilabel:`MODIFY` -> :guilabel:`Change Text
 Parameters` in the Design workspace and :guilabel:`MANAGE` -> :guilabel:`Change Text
 Parameters` in the Manufacture workspace.
 
-Due to Fusion API limitations, ParametricText is not added to a menu in the Flat pattern environment. As a workaround, you can assign a keyboard shortcut to "Change Text Parameters".
-
 |img_menu|
 
 .. |img_menu| image:: images/modify_menu.png

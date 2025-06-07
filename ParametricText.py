@@ -61,8 +61,7 @@ PANEL_IDS = [
             'SurfaceModifyPanel',
             'SnapshotSolidModifyPanel',
             'CAMManagePanel',
-            # TODO: Add Modify panel Flat Panel Solid and Flat Panel Surface,
-            # if that is possible. https://forums.autodesk.com/t5/fusion-api-and-scripts-forum/add-in-not-shown-in-quot-flat-pattern-quot/m-p/7540174
+            # Flat Pattern panels are special-handled in get_modify_panels()
         ]
 
 # Flag to check if add-in has been started/initialized.
@@ -95,8 +94,7 @@ def run(_context: str) -> None:
 
         dialog_cmd_def = dialog.create_cmd(DIALOG_CMD_ID, update_texts)
 
-        for panel_id in PANEL_IDS:
-            panel = globals.ui_.allToolbarPanels.itemById(panel_id)
+        for panel in get_modify_panels():
             old_control = panel.controls.itemById(DIALOG_CMD_ID)
             if old_control:
                 old_control.deleteMe()
@@ -139,9 +137,8 @@ def stop(_context: str) -> None:
     with globals.error_catcher_:
         globals.events_manager_.clean_up()
 
-        panel = None
-        for panel_id in PANEL_IDS:
-            panel = globals.ui_.allToolbarPanels.itemById(panel_id)
+        panels = get_modify_panels()
+        for panel in panels:
             control = panel.controls.itemById(DIALOG_CMD_ID)
             if control:
                 control.deleteMe()
@@ -209,6 +206,19 @@ def set_sketch_text(sketch_text: af.SketchText, text: str) -> bool:
         else:
             raise
     return True
+
+def get_modify_panels() -> list[ac.ToolbarPanel]:
+    panels = []
+
+    for panel_id in PANEL_IDS:
+        panels.append(globals.ui_.allToolbarPanels.itemById(panel_id))
+    
+    # The Flat Pattern panels are for some reason not part of allToolbarPanels.
+    # https://forums.autodesk.com/t5/fusion-api-and-scripts-forum/add-menu-item-to-flat-pattern-modify-panel/m-p/13664848
+    panels.append(globals.ui_.allToolbarTabs.itemById('FlatPatternSolidTab').toolbarPanels.itemById('SolidModifyPanel'))
+    panels.append(globals.ui_.allToolbarTabs.itemById('FlatPatternSurfaceTab').toolbarPanels.itemById('SurfaceModifyPanel'))
+
+    return panels
 
 def document_opened_handler(args: ac.DocumentEventArgs) -> None:
     if globals.settings_[globals.TROUBLESHOOT_SETTING]:
