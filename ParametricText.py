@@ -143,10 +143,9 @@ def stop(_context: str) -> None:
             if control:
                 control.deleteMe()
         
-        if panel:
-            dialog_cmd_def = panel.controls.itemById(DIALOG_CMD_ID)
-            if dialog_cmd_def:
-                dialog_cmd_def.deleteMe()
+        dialog_cmd_def = globals.ui_.commandDefinitions.itemById(DIALOG_CMD_ID)
+        if dialog_cmd_def:
+            dialog_cmd_def.deleteMe()
 
         del adsk.thomasa88_parametric_text_running # type: ignore
 
