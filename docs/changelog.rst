@@ -1,6 +1,10 @@
 What's New
 ----------
 
+- v 2.5.2 (June 2025)
+
+   - Add missing file, which made version 2.5.0 and 2.5.1 fail to load.
+
 - v 2.5.1 (June 2025)
 
    - Add "Change Text Parameters" to the "Modify" menu in the flat pattern environment. (#86)
