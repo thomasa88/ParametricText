@@ -25,14 +25,12 @@ from __future__ import annotations
 
 import datetime
 import re
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, cast
 import sys
 
-if TYPE_CHECKING:
+if 'unittest' not in sys.modules:
     import adsk.core as ac
     import adsk.fusion as af
-
-if 'unittest' not in sys.modules:
     from . import globals
     from . import paramparser
     from . import paramformatter
@@ -178,10 +176,19 @@ def sub_func(subst_match: re.Match[str],
 
         match member:
             case 'value' | '':
+                # valueType and textValue are experimental (2025-09-14)
+                if hasattr(param, 'valueType') and param.valueType == af.ParameterValueTypes.TextParameterValueType:
+                    value = param.textValue
+                    is_sliceable = True
                 # Make sure that the value is in the unit that the user has given
-                if param.unit == '':
+                elif param.unit == '':
                     # Unit-less
-                    value = param.value
+                    try:
+                        value = param.value
+                    except RuntimeError:
+                        # Assuming this is a text value, but the experimental members have been
+                        # removed or replaced.
+                        value = param.expression[1:-1]
                 else:
                     # Has unit.
                     # Rounding is done to get rid of small floating point value noise,

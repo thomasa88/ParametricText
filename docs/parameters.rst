@@ -34,8 +34,8 @@ The following parameter properties are accessible.
 +-------------------+----------+------------+----------+
 | parameter         | decimal  |Parameter   |25.0      |
 |                   | (double) |value       |          |
-| *or*              |          |            |          |
-|                   |          |            |          |
+| *or*              | or       |            |          |
+|                   | string   |            |          |
 | parameter.value   |          |            |          |
 +-------------------+----------+------------+----------+
 | parameter.comment | string   |Parameter   |Distance  |

@@ -37,6 +37,13 @@ is needed.
 
    ParametricText in action
 
+Fusion's built-in text parameters
+---------------------------------
+
+Fusion introduced its own text parameters in the September 2025 release.
+ParametricText supports showing the values of these parameters, but is in all
+other ways completely separate from Fusion's own text parameters.
+
 Demo Video
 ----------
 
