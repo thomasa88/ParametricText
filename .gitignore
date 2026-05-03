@@ -5,3 +5,5 @@ release
 settings.json
 __pycache__
 resources/*/*x*-normal.png
+.env
+.python-version
