@@ -240,13 +240,19 @@ def document_saving_handler(args: ac.DocumentEventArgs) -> None:
         # saves the document.
         update_texts(text_filter=['_.version', '_.date'], next_version=True)
 
+last_terminated_cmd_id_ = None
 def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
+    global last_terminated_cmd_id_
+
     if globals.settings_[globals.TROUBLESHOOT_SETTING]:
         globals.log(f"Command terminated: {args.commandId}, reason: {args.terminationReason}")
+
     if args.terminationReason != ac.CommandTerminationReason.CompletedTerminationReason:
         if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason and args.commandId == 'DesignConfigurationUpdateNestedRowNameCmd':
             # User renamed a configuration
             update_texts_async(text_filter=['_.configuration'])
+
+    if args.commandId == 'SelectCommand':
         return
 
     # Taking action directly disturbs the Paste New command, so update_texts()
@@ -259,9 +265,14 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
               'DesignConfigurationActivateRowCmd'):
             # User (might have) changed a parameter
             update_texts_async()
-        case 'FusionPasteNewCommand':
-            # User pasted a component, that will have a new name
-            update_texts_async(text_filter=['_.component'])
+        # FusionPasteNewCommand immediately triggers a move command since
+        # some time in 2026. If ParametricText reacts to the
+        # FusionPasteNewCommand, the move dialog gets closed. Instead, react
+        # to move after paste new. #103
+        case 'FusionMoveCommand':
+            if last_terminated_cmd_id_ == 'FusionPasteNewCommand':
+                # User pasted a component, that will have a new name
+                update_texts_async(text_filter=['_.component'])
         case 'FusionPropertiesCommand':
             # User changed component properties
             update_texts_async(text_filter=['_.component', '_.compdesc', '_.partnum'])
@@ -281,6 +292,8 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
                     text_filter.add('_.sketch')
             if text_filter:
                 update_texts_async(text_filter=text_filter)
+
+    last_terminated_cmd_id_ = args.commandId    
 
 def command_starting_handler(args: ac.ApplicationCommandEventArgs) -> None:
     if globals.settings_[globals.TROUBLESHOOT_SETTING]:

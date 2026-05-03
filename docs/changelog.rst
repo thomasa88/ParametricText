@@ -1,6 +1,10 @@
 What's New
 ----------
 
+- v 2.6.1 (October 2026)
+
+   - Don't close the Paste New component dialog. (#103)
+
 - v 2.6.0 (September 2025)
 
    - Correcly handle Fusion's own text parameters, introduced in the September 2025. (#96)
