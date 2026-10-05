@@ -261,10 +261,47 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
 
     match args.commandId:
         case ('ChangeParameterCommand' |
-              'SketchEditDimensionCmdDef' |
               'DesignConfigurationActivateRowCmd'):
             # User (might have) changed a parameter
             update_texts_async()
+        # As we don't want to accidentally abort the dimensioning tool when the
+        # user is placing multiple dimensions, we try to run after the
+        # dimensioning work has been completed. #99
+        #
+        # Command events triggered by user input:
+        # When the line to dimension has been selected, but the dimension box
+        # has not yet been placed:
+        # escape: SketchDimension, reason: 2 (Cancelled)
+        #    Dimensioning is aborted.
+        # enter: SketchDimension, reason: 1 (Completed)
+        #    Edit box opens.
+        # select new tool: SketchDimension, reason: 4 (Pre-empted)
+        #    Comes after the next tool is started.
+        #
+        # When the edit box is open:
+        # escape: SketchEditDimensionCmdDef, reason: 2 (Cancelled)
+        #    Edit box closes. Dimensioning is done.
+        # enter: SketchEditDimensionCmdDef, reason: 1 (Completed)
+        #    Dimensioning continues.
+        # select new tool: SketchEditDimensionCmdDef, reason: 4 (Pre-empted)
+        #    Comes after the next tool is started.
+        #
+        # The selected solution is to run the update when the user cancels using
+        # the tool. If the update would trigger when the user completes a
+        # dimension, it would abort the dimensioning tool.
+        # 
+        # NOTE: The update does not run when the user cancels dimensioning by
+        # selecting another tool, as that would abort the command for the newly
+        # selected tool. This means that the user in that case must trigger
+        # Compute All manually.
+        case 'SketchDimension':
+            if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason:
+                # User cancelled placing dimensions
+                update_texts_async()
+        case 'SketchEditDimensionCmdDef':
+            if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason:
+                # User cancelled editing a sketch dimension
+                update_texts_async()
         # FusionPasteNewCommand immediately triggers a move command since
         # some time in 2026. If ParametricText reacts to the
         # FusionPasteNewCommand, the move dialog gets closed. Instead, react
