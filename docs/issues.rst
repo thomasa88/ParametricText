@@ -4,10 +4,6 @@ Issues/Bugs
 Known Limitations
 -----------------
 
-- Update of text parameters does not automatically occur when the user cancels dimensioning by selecting another tool.
-
-   - The workaround is to run Compute All manually.
-
 The following are known limitations that cannot be fixed, due to the Fusion add-in interface.
 
 - :kbd:`{` and :kbd:`}` cannot be entered in string inputs in Fusion on keyboards where they require :kbd:`AltGr` to be pressed.

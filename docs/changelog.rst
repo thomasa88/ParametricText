@@ -4,9 +4,7 @@ What's New
 - v 2.6.1 (October 2026)
 
    - Don't close the Paste New component dialog. (#103)
-   - Don't abort the dimensioning tool when placing multiple dimensions.
-     Drawback: Texts are not automatically updated when the user selects a new
-     tool when dimensioning tool is active. (#99)
+   - Don't abort the dimensioning tool when placing multiple dimensions. (#99)
 
 - v 2.6.0 (September 2025)
 

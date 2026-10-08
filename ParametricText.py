@@ -241,8 +241,10 @@ def document_saving_handler(args: ac.DocumentEventArgs) -> None:
         update_texts(text_filter=['_.version', '_.date'], next_version=True)
 
 last_terminated_cmd_id_ = None
+# Used to trigger an update after the user deactivates any tool after chaining tool uses.
+pending_full_update_ = False
 def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
-    global last_terminated_cmd_id_
+    global last_terminated_cmd_id_, pending_full_update_
 
     if globals.settings_[globals.TROUBLESHOOT_SETTING]:
         globals.log(f"Command terminated: {args.commandId}, reason: {args.terminationReason}")
@@ -289,19 +291,18 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
         # The selected solution is to run the update when the user cancels using
         # the tool. If the update would trigger when the user completes a
         # dimension, it would abort the dimensioning tool.
-        # 
-        # NOTE: The update does not run when the user cancels dimensioning by
-        # selecting another tool, as that would abort the command for the newly
-        # selected tool. This means that the user in that case must trigger
-        # Compute All manually.
-        case 'SketchDimension':
+        case 'SketchDimension' | 'SketchEditDimensionCmdDef':
             if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason:
-                # User cancelled placing dimensions
-                update_texts_async()
-        case 'SketchEditDimensionCmdDef':
-            if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason:
-                # User cancelled editing a sketch dimension
-                update_texts_async()
+                # User cancelled placing or editing dimensions.
+                # Just setting the flag to avoid double updates if the user
+                # saved a dimension and continued placing more dimensions.
+                pending_full_update_ = True
+            elif args.terminationReason == ac.CommandTerminationReason.PreEmptedTerminationReason:
+                # User cancelled dimensioning by selecting another tool or
+                # pressed enter on a dimension and the dimensioning continues.
+                # Avoid running directly, as the update command would abort the
+                # newly started tool command.
+                pending_full_update_ = True
         # FusionPasteNewCommand immediately triggers a move command since
         # some time in 2026. If ParametricText reacts to the
         # FusionPasteNewCommand, the move dialog gets closed. Instead, react
@@ -333,6 +334,7 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
     last_terminated_cmd_id_ = args.commandId    
 
 def command_starting_handler(args: ac.ApplicationCommandEventArgs) -> None:
+    global pending_full_update_
     if globals.settings_[globals.TROUBLESHOOT_SETTING]:
         globals.log(f"Command starting: {args.commandId}")
     if args.commandId == 'FusionComputeAllCommand':
@@ -342,6 +344,8 @@ def command_starting_handler(args: ac.ApplicationCommandEventArgs) -> None:
         # but better be safe than sorry.
         if not running_compute_all_:
             update_texts_async()
+    elif pending_full_update_ and args.commandId == 'SelectCommand':
+        update_texts_async()
 
 # NOTE: This function might be called from inside a command
 def update_texts(text_filter: Iterable[str] | None = None,
@@ -412,6 +416,9 @@ def update_texts_async(text_filter: Iterable[str] | None = None, next_version: b
     # Running this as a command to avoid a big list of "Set attribute" in the Undo history.
     # We cannot avoid having at least one item in the Undo list:
     # https://forums.autodesk.com/t5/fusion-360-api-and-scripts/stop-custom-graphics-from-being-added-to-undo/m-p/9438477
+    if not text_filter:
+        global pending_full_update_
+        pending_full_update_ = False
     async_update_queue_.put((text_filter, next_version))
     update_cmd_def = globals.ui_.commandDefinitions.itemById(UPDATE_CMD_ID)
     update_cmd_def.execute()
