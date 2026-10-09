@@ -4,7 +4,9 @@ What's New
 - v 2.6.1 (October 2026)
 
    - Don't close the Paste New component dialog. (#103)
-   - Don't abort the dimensioning tool when placing multiple dimensions. (#99)
+   - Don't abort the dimensioning tool when placing multiple dimensions.
+     Parameter updates are now delayed until the dimensioning tool is
+     deselected. (#99)
 
 - v 2.6.0 (September 2025)
 

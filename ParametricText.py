@@ -284,24 +284,25 @@ def command_terminated_handler(args: ac.ApplicationCommandEventArgs) -> None:
         # escape: SketchEditDimensionCmdDef, reason: 2 (Cancelled)
         #    Edit box closes. Dimensioning is done.
         # enter: SketchEditDimensionCmdDef, reason: 1 (Completed)
-        #    Dimensioning continues.
+        #    Dimensioning continues if dimensioning tool is used. Dimensioning
+        #    is done if the user started it by double-clicking an existing
+        #    dimension.
         # select new tool: SketchEditDimensionCmdDef, reason: 4 (Pre-empted)
         #    Comes after the next tool is started.
         #
         # The selected solution is to run the update when the user cancels using
         # the tool. If the update would trigger when the user completes a
-        # dimension, it would abort the dimensioning tool.
-        case 'SketchDimension' | 'SketchEditDimensionCmdDef':
-            if args.terminationReason == ac.CommandTerminationReason.CancelledTerminationReason:
-                # User cancelled placing or editing dimensions.
-                # Just setting the flag to avoid double updates if the user
-                # saved a dimension and continued placing more dimensions.
-                pending_full_update_ = True
-            elif args.terminationReason == ac.CommandTerminationReason.PreEmptedTerminationReason:
-                # User cancelled dimensioning by selecting another tool or
-                # pressed enter on a dimension and the dimensioning continues.
-                # Avoid running directly, as the update command would abort the
-                # newly started tool command.
+        # dimension, it would abort the dimensioning tool. We are technically
+        # only interested in edited dimensions, since a dimension will not have
+        # a name to use before it is placed.
+        case 'SketchEditDimensionCmdDef':
+            if args.terminationReason == ac.CommandTerminationReason.CompletedTerminationReason or args.terminationReason == ac.CommandTerminationReason.PreEmptedTerminationReason:
+                # User completed editing a dimension by pressing enter or
+                # selecting another tool. Either the user was just editing a
+                # dimension and dimensioning is over, the user is using the
+                # dimensioning tool and will place more dimension or the user
+                # has selected another tool. Avoid running directly, in case the
+                # user is placing more dimensions or has selected another tool.
                 pending_full_update_ = True
         # FusionPasteNewCommand immediately triggers a move command since
         # some time in 2026. If ParametricText reacts to the
