@@ -35,3 +35,14 @@ ls _build/html
 ### Running tests
 
 Run `python3 -m unittest` to execute all unit tests.
+### Packaging a Community Store download
+
+For a stable release, run the existing `thomasa88lib/make-addin-release.sh`
+from the tagged checkout with submodules initialized. Alongside the usual
+GitHub download, attach a copy of the generated `ParametricText-vX.Y.Z-AppStore.zip`
+named `ParametricText-vX.Y.Z-universal.zip` to the GitHub release.
+
+This ZIP has the matching `ParametricText/` folder, manifest and entry point,
+and includes the pinned library and icons. Community Store prefers the
+`-universal.zip` asset. Existing manual installations can continue using
+the regular GitHub ZIP with its original folder name.

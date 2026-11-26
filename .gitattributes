@@ -1,0 +1,2 @@
+# The documentation tree contains links into resources/. Fusion loads resources/ directly.
+/docs export-ignore
